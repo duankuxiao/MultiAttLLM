@@ -1,0 +1,1 @@
+Electricity dataset is recorded every 1 hour, which contains meteorological indicators and power source composition of Japan , such as air temperature, humidity, solar, coal nuclear, etc.
