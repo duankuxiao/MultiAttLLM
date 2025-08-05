@@ -215,8 +215,8 @@ class LLMBlock(nn.Module):
         self.num_tokens = 3000
         self.mapping_layer = nn.Linear(self.vocab_size, self.num_tokens)
 
-        self.reprogramming_layer = ReprogrammingLayer(configs.c_out, configs.n_heads, self.d_ff, self.d_llm)
-        self.reprogramming_layer_forecast = ReprogrammingLayer(configs.forecast_dim, configs.n_heads, self.d_ff, self.d_llm)
+        self.reprogramming_layer = SelfAttentionLayer(configs.c_out, configs.n_heads, self.d_ff, self.d_llm)
+        self.reprogramming_layer_forecast = SelfAttentionLayer(configs.forecast_dim, configs.n_heads, self.d_ff, self.d_llm)
 
         self.llm_model.to(device=self.device)
         self.mapping_layer.to(device=self.device)
@@ -239,7 +239,6 @@ class LLMBlock(nn.Module):
             lags = self.calcute_lags(x_target)
             trends = x_target.diff(dim=1).sum(dim=1)
             if self.use_prompt:
-
                 prompt = []
                 for b in range(x_enc.shape[0]):
                     min_values_str = str(min_values[b].tolist()[0])
@@ -285,9 +284,9 @@ class LLMBlock(nn.Module):
         return lags
 
 
-class ReprogrammingLayer(nn.Module):
+class SelfAttentionLayer(nn.Module):
     def __init__(self, d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1):
-        super(ReprogrammingLayer, self).__init__()
+        super(SelfAttentionLayer, self).__init__()
 
         d_keys = d_keys or (d_model // n_heads)
 
@@ -303,11 +302,11 @@ class ReprogrammingLayer(nn.Module):
         S, _ = source_embedding.shape
         H = self.n_heads
 
-        target_embedding = self.query_projection(target_embedding).view(B, T, H, -1)  # [8, 72, 8, 128]
-        source_embedding = self.key_projection(source_embedding).view(S, H, -1)  # [1000, 8, 128]
-        value_embedding = self.value_projection(value_embedding).view(S, H, -1)  # [1000, 8, 128]
+        target_embedding = self.query_projection(target_embedding).view(B, T, H, -1)
+        source_embedding = self.key_projection(source_embedding).view(S, H, -1)
+        value_embedding = self.value_projection(value_embedding).view(S, H, -1)
 
-        out = self.reprogramming(target_embedding, source_embedding, value_embedding)  # [B, T, H, 128]
+        out = self.reprogramming(target_embedding, source_embedding, value_embedding)
         out = out.reshape(B, T, -1)
         return self.out_projection(out)
 
@@ -315,7 +314,6 @@ class ReprogrammingLayer(nn.Module):
         B, L, H, E = target_embedding.shape
 
         scale = 1. / sqrt(E)
-
         scores = torch.einsum("blhe,she->bhls", target_embedding, source_embedding)
 
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
@@ -324,34 +322,9 @@ class ReprogrammingLayer(nn.Module):
         return reprogramming_embedding
 
 
-class Attention(nn.Module):
-    def __init__(self, d_llm, d_model,n_heads,d_keys=None,attention_dropout=0.1):
-        super().__init__()
-        self.query_projection = nn.Linear(d_llm, d_keys * n_heads)
-        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.value_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.dropout = nn.Dropout(attention_dropout)
-
-    def forward(self, query, key, value):
-        query = self.query_projection(query)
-        key = self.key_projection(key)
-        value = self.value_projection(value)
-
-        out = self.reprogramming(query, key, value)
-        return out
-
-    def reprogramming(self, target_embedding, source_embedding, value_embedding):
-        B, L, E = target_embedding.shape
-        scale = 1. / sqrt(E)
-        scores = torch.einsum("ble,bls->bl", target_embedding, source_embedding)
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        reprogramming_embedding = torch.einsum("bl,bls->bls", A, value_embedding)
-        return reprogramming_embedding
-
-
-class CrossAttention(nn.Module):
+class CrossAttentionLayer(nn.Module):
     def __init__(self, d_llm, d_model, n_heads, d_keys=None, attention_dropout=0.1):
-        super(CrossAttention, self).__init__()
+        super(CrossAttentionLayer, self).__init__()
 
         self.query_projection = nn.Linear(d_llm, d_keys * n_heads)
         self.key_projection = nn.Linear(d_model, d_keys * n_heads)
@@ -422,8 +395,7 @@ class Model(nn.Module):
         )
         self.LLM_encoder = LLMBlock(configs)
 
-        # self.attention = Attention(configs.llm_dim, configs.enc_in-1,configs.n_heads, configs.d_ff)
-        self.attention = CrossAttention(configs.llm_dim, configs.enc_in-self.c_out,configs.n_heads, configs.d_ff)
+        self.attention = CrossAttentionLayer(configs.llm_dim, configs.enc_in-self.c_out,configs.n_heads, configs.d_ff)
         # Decoder
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             self.dec_embedding = DataEmbedding(configs.llm_dim, configs.d_model, configs.embed, configs.freq, configs.dropout)
@@ -451,14 +423,6 @@ class Model(nn.Module):
             )
             self.out_projection = nn.Linear(configs.d_model, configs.c_out)
             self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len+configs.label_len)
-        if self.task_name == 'imputation':
-            self.output_projection = nn.Linear(configs.d_model, configs.c_out, bias=True)
-        if self.task_name == 'anomaly_detection':
-            self.output_projection = nn.Linear(configs.d_model, configs.c_out, bias=True)
-        if self.task_name == 'classification':
-            self.act = F.gelu
-            self.dropout = nn.Dropout(configs.dropout)
-            self.output_projection = nn.Linear(configs.d_model * configs.seq_len, configs.num_class)
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec, x_forecast):
         x_enc_other = x_enc[:,:,:-self.c_out]
@@ -476,46 +440,9 @@ class Model(nn.Module):
 
         return dec_out
 
-    def imputation(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask):
-        # Embedding
-        enc_out = self.enc_embedding(x_enc, x_mark_enc)
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
-
-        dec_out = self.projection(enc_out)
-        return dec_out
-
-    def anomaly_detection(self, x_enc):
-        # Embedding
-        enc_out = self.enc_embedding(x_enc, None)
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
-
-        dec_out = self.projection(enc_out)
-        return dec_out
-
-    def classification(self, x_enc, x_mark_enc):
-        # Embedding
-        enc_out = self.enc_embedding(x_enc, None)
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
-
-        # Output
-        output = self.act(enc_out)  # the output transformer encoder/decoder embeddings don't include non-linearity
-        output = self.dropout(output)
-        output = output * x_mark_enc.unsqueeze(-1)  # zero-out padding embeddings
-        output = output.reshape(output.shape[0], -1)  # (batch_size, seq_length * d_model)
-        output = self.projection(output)  # (batch_size, num_classes)
-        return output
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
             return dec_out[:, -self.pred_len:, :]  # [B, L, D]
-        if self.task_name == 'imputation':
-            dec_out = self.imputation(x_enc, x_mark_enc, x_dec, x_mark_dec, mask)
-            return dec_out  # [B, L, D]
-        if self.task_name == 'anomaly_detection':
-            dec_out = self.anomaly_detection(x_enc)
-            return dec_out  # [B, L, D]
-        if self.task_name == 'classification':
-            dec_out = self.classification(x_enc, x_mark_enc)
-            return dec_out  # [B, N]
         return None

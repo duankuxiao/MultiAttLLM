@@ -1,6 +1,6 @@
 import os
 import torch
-from models import TimeLLM, TimesNet, DLinear, MultiAttLLM,, iTransformer, RNN
+from models import TimeLLM, TimesNet, DLinear, MultiAttLLM, iTransformer, RNN
 
 
 class Exp_Basic(object):

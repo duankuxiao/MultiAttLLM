@@ -1,4 +1,5 @@
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
@@ -97,8 +98,10 @@ class Exp_Forecast(Exp_Basic):
 
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
-        vali_data, vali_loader = self._get_data(flag='val')
-        test_data, test_loader = self._get_data(flag='test')
+        if self.args.val:
+            vali_data, vali_loader = self._get_data(flag='val')
+        else:
+            vali_data, vali_loader = self._get_data(flag='test')
 
         path = os.path.join(self.args.checkpoints, setting, 'checkpoints')
         if not os.path.exists(path):
@@ -106,6 +109,7 @@ class Exp_Forecast(Exp_Basic):
         save_config(self.args, os.path.join(path, 'configs.pkl'))
 
         time_now = time.time()
+        time_start = time.time()
 
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True,accelerator=self.accelerator)
@@ -121,7 +125,7 @@ class Exp_Forecast(Exp_Basic):
             self.accelerator.print(f"Process {self.accelerator.process_index} is using device {self.accelerator.device}")
 
         # Initialize a dictionary to store loss values
-        loss_records = {"epoch": [], "train_loss": [], "vali_loss": []}
+        loss_records = {"epoch": [], "time": [],"train_loss": [], "vali_loss": []}
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
@@ -133,26 +137,24 @@ class Exp_Forecast(Exp_Basic):
                 iter_count += 1
                 model_optim.zero_grad()
 
+                batch_x = batch_x.float()
+                batch_y = batch_y.float()
+                batch_x_mark = batch_x_mark.float()
+                batch_y_mark = batch_y_mark.float()
+                x_forecast = x_forecast.float()
+
+                # decoder input
+                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
+                dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float()
                 if self.args.accelerate:
-                    batch_x = batch_x.float()
-                    batch_y = batch_y.float()
-                    batch_x_mark = batch_x_mark.float()
-                    batch_y_mark = batch_y_mark.float()
-                    x_forecast = x_forecast.float()
-
-                    # decoder input
-                    dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
-                    dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float()
+                    pass
                 else:
-                    batch_x = batch_x.float().to(self.device)
-                    batch_y = batch_y.float().to(self.device)
-                    batch_x_mark = batch_x_mark.float().to(self.device)
-                    batch_y_mark = batch_y_mark.float().to(self.device)
-                    x_forecast = x_forecast.float().to(self.device)
-
-                    # decoder input
-                    dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
-                    dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
+                    batch_x = batch_x.to(self.device)
+                    batch_y = batch_y.to(self.device)
+                    batch_x_mark = batch_x_mark.to(self.device)
+                    batch_y_mark = batch_y_mark.to(self.device)
+                    x_forecast = x_forecast.to(self.device)
+                    dec_inp = dec_inp.to(self.device)
 
                 # encoder - decoder
                 if self.args.use_amp:
@@ -211,11 +213,13 @@ class Exp_Forecast(Exp_Basic):
                 if self.args.lradj == 'TST':
                     adjust_learning_rate(model_optim, scheduler, epoch + 1, self.args, printout=False,accelerator=self.accelerator)
                     scheduler.step()
+
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
 
             # Record loss values
             loss_records["epoch"].append(epoch + 1)
+            loss_records["time"].append(round((time.time() - time_start)/60,4))
             loss_records["train_loss"].append(train_loss)
             loss_records["vali_loss"].append(vali_loss)
 
@@ -230,7 +234,7 @@ class Exp_Forecast(Exp_Basic):
                 break
 
             left_time = 1 + (self.args.patience - early_stopping.counter) * cost_time
-            print("  Left time: {} min".format(left_time))
+            print("  Left time: {} min".format(round(left_time,2)))
 
             if self.args.lradj != 'TST':
                 if self.args.lradj == 'COS':
@@ -259,6 +263,13 @@ class Exp_Forecast(Exp_Basic):
         loss_df = pd.DataFrame(loss_records)
         loss_df.to_csv(os.path.join(folder_path, "loss_records.csv"), index=False)
         print("Loss records saved to:", os.path.join(folder_path, "loss_records.csv"))
+        report = torch.cuda.memory_summary(device=self.device, abbreviated=False)
+        print(report)
+        peak_alloc = torch.cuda.max_memory_allocated(self.device)
+        used_bytes = torch.cuda.memory_allocated(self.device)
+        with open(os.path.join(folder_path,"memory_summary_{}_{}.txt".format(round(used_bytes*1024/(10**9),1),round(speed*1000,2))), "w") as f:
+            f.write(report)
+        print("Saved CUDA memory summary to cuda_memory_summary.txt")
         return self.model
 
     def test(self, setting, test=0, path=None):
@@ -284,6 +295,8 @@ class Exp_Forecast(Exp_Basic):
         trues = []
 
         self.model.eval()
+        time_now = time.time()
+        cost_time = []
 
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark, x_forecast) in enumerate(test_loader):
@@ -309,6 +322,8 @@ class Exp_Forecast(Exp_Basic):
 
                     else:
                         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark, x_forecast)
+                speed = round((time.time() - time_now), 4)
+                time_now = time.time()
 
                 if self.args.accelerate:
                     self.accelerator.wait_for_everyone()
@@ -346,6 +361,8 @@ class Exp_Forecast(Exp_Basic):
                             os.makedirs(res_path)
                         visual(gt, pd, os.path.join(res_path, str(i) + '.pdf'))
 
+        cost_time.append(speed)
+        print("Cost time: {} s/iter".format(round(np.mean(cost_time),4)))
         preds = np.concatenate(preds, axis=0)
         trues = np.concatenate(trues, axis=0)
         print('test shape:', preds.shape, trues.shape)
@@ -419,6 +436,7 @@ class Exp_Forecast(Exp_Basic):
         for i in self.args.target:
             res_df['{}_pred'.format(i)] = pred[:, self.args.target.index(i)]
             res_df['{}_true'.format(i)] = true[:, self.args.target.index(i)]
+            self._show_plot(i,y_true=true[:, self.args.target.index(i)],y_pred=pred[:, self.args.target.index(i)],path=path)
 
             [mse, rmse,nrmse, mae,mape,rae, r2,corr] = results_evaluation(true[:, self.args.target.index(i)], pred[:, self.args.target.index(i)])
             print('{} mse:{}, rmse:{} mae:{} r2:{} corr:{}'.format(i, mse, rmse, mae, r2, corr))
@@ -449,3 +467,20 @@ class Exp_Forecast(Exp_Basic):
         res_df.to_csv(os.path.join(path, 'pred_res_{}.csv'.format(self.args.data_path[:-4])))
         res_metrics_df.to_csv(os.path.join(path, 'res_metrics_df_{}.csv'.format(self.args.data_path[:-4])))
         return res_df,res_metrics_df
+
+    def _show_plot(self,i,y_true,y_pred,path=None):
+        x_range = np.arange(self.args.num_train -self.args.pred_len*7, self.args.num_train)
+        y_pred_plot = y_pred[-self.args.pred_len*7:]
+        plt.figure(self.args.target.index(i)+1, figsize=(20, 5))
+        plt.plot(x_range, y_pred_plot, "r-", label="Forecast values")
+        yplot = y_true[-self.args.pred_len*7:]
+        plt.plot(x_range, yplot, "k-", label="True values")
+        ymin, ymax = plt.ylim()
+        plt.vlines(self.args.num_train - self.args.pred_len*7, ymin, ymax, color="blue", linestyles="dashed", linewidth=2)
+        plt.ylim(ymin, ymax)
+        plt.legend(loc="upper left")
+        plt.title('Prediction')
+        plt.xlabel("Periods")
+        plt.ylabel("Y")
+        plt.savefig(os.path.join(path,'{}.png'.format(i)))
+        plt.close()
