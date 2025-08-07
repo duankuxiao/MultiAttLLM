@@ -33,7 +33,7 @@ class FlattenHead(nn.Module):
 
 class LLMBlock(nn.Module):
 
-    def __init__(self, configs, patch_len=16, stride=8):
+    def __init__(self, configs):
         super(LLMBlock, self).__init__()
         self.device = configs.device
         self.task_name = configs.task_name
@@ -203,11 +203,6 @@ class LLMBlock(nn.Module):
         for param in self.llm_model.parameters():
             param.requires_grad = False
 
-        if configs.prompt_domain:
-            self.description = configs.content
-        else:
-            self.description = 'The Electricity Transformer Temperature (ETT) is a crucial indicator in the electric power long-term deployment.'
-
         self.dropout = nn.Dropout(configs.dropout)
 
         self.word_embeddings = self.llm_model.get_input_embeddings().weight
@@ -278,55 +273,10 @@ class CrossAttentionLayer(nn.Module):
 
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
         reprogramming_embedding = torch.einsum("bhls,she->blhe", A, value_embedding)
-
         return reprogramming_embedding
 
-
-class SelfAttentionLayer(nn.Module):
-    def __init__(self, d_llm, d_model, n_heads, d_keys=None, attention_dropout=0.1):
-        super(SelfAttentionLayer, self).__init__()
-
-        self.query_projection = nn.Linear(d_llm, d_keys * n_heads)
-        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.value_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.out_projection = nn.Linear(d_keys * n_heads, d_model)
-        self.n_heads = n_heads
-        self.dropout = nn.Dropout(attention_dropout)
-
-    def forward(self, target_embedding, source_embedding, value_embedding):
-        B, L, _ = target_embedding.shape  # [80, 18, 32]
-        S, _ = source_embedding.shape  # [1000, 768]
-        H = self.n_heads
-
-        target_embedding = self.query_projection(target_embedding).view(B, L, H, -1)  # [80, 18, 8, 128]
-        source_embedding = self.key_projection(source_embedding).view(S, H, -1)  # [1000, 8, 128]
-        value_embedding = self.value_projection(value_embedding).view(S, H, -1)  # [1000, 8, 128]
-
-        out = self.reprogramming(target_embedding, source_embedding, value_embedding)  # [80, 18, 8, 128]
-
-        out = out.reshape(B, L, -1)  # [80, 18, 1024]
-
-        return self.out_projection(out)  # [80, 18, 768]
-
-    def reprogramming(self, target_embedding, source_embedding, value_embedding):
-        B, L, H, E = target_embedding.shape
-
-        scale = 1. / sqrt(E)
-
-        scores = torch.einsum("blhe,she->bhls", target_embedding, source_embedding)
-
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        reprogramming_embedding = torch.einsum("bhls,she->blhe", A, value_embedding)
-
-        return reprogramming_embedding
 
 class Model(nn.Module):
-    """
-    Vanilla Transformer
-    with O(L^2) complexity
-    Paper link: https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf
-    """
-
     def __init__(self, configs):
         super(Model, self).__init__()
         self.task_name = configs.task_name
@@ -355,13 +305,12 @@ class Model(nn.Module):
         )
         self.LLM_encoder = LLMBlock(configs)
 
-        self.attention = SelfAttentionLayer(configs.llm_dim, configs.enc_in-self.c_out,configs.n_heads, configs.d_ff)
         # Decoder
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             self.dec_embedding = DataEmbedding(configs.llm_dim, configs.d_model, configs.embed, configs.freq, configs.dropout)
 
             # Embedding
-            self.decoder = Decoder(
+            self.selfattention_layer = Decoder(
                 [
                     DecoderLayer(
                         AttentionLayer(
@@ -394,7 +343,7 @@ class Model(nn.Module):
         dec_in = self.linear_predict(enc_out_target.permute(0,2,1)).permute(0,2,1)
         dec_in = self.dec_embedding(dec_in, x_mark_dec)
 
-        dec_out = self.decoder(dec_in, enc_out_other, x_mask=None, cross_mask=None)
+        dec_out = self.selfattention_layer(dec_in, enc_out_other, x_mask=None, cross_mask=None)
         dec_out = self.out_projection(dec_out)
 
         return dec_out
