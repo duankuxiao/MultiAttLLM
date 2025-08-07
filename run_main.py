@@ -85,13 +85,14 @@ if __name__ == '__main__':
 
     all_results = []
 
-    for model in ['RNN', 'DLinear', 'Informer', 'Autoformer', 'iTransformer', 'TimesNet', 'PatchTST', 'TimeLLM', 'TimeLLMformer']:
+    # for model in ['RNN', 'DLinear', 'Informer', 'Autoformer', 'iTransformer', 'TimesNet', 'PatchTST', 'TimeLLM', 'TimeLLMformer']:
+    for model in ['MultiAttLLM']:
 
         args = deepcopy(default_args)
 
         args.model_id = 'test'
 
-        args.model = model  # [Autoformer, TimeLLM, TimeLLMX, TimeLLMformer, TimesNet, DLinear, Informer, Transformer, TimeMixer, iTransformer, TransformerForecast, RNN, PatchTST,]
+        args.model = model
         args.is_training = 1
 
         args = model_hyparameter_setup(args)

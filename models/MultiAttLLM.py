@@ -86,14 +86,14 @@ class LLMBlock(nn.Module):
                     local_files_only=False
                 )
         elif configs.llm_model == 'GPT2':
-            self.gpt2_config = GPT2Config.from_pretrained('openai-community/gpt2')
+            self.gpt2_config = GPT2Config.from_pretrained(r'D:\LLM\gpt2')
 
             self.gpt2_config.num_hidden_layers = configs.llm_layers
             self.gpt2_config.output_attentions = True
             self.gpt2_config.output_hidden_states = True
             try:
                 self.llm_model = GPT2Model.from_pretrained(
-                    'openai-community/gpt2',
+                    r'D:\LLM\gpt2',
                     trust_remote_code=True,
                     local_files_only=True,
                     config=self.gpt2_config,
@@ -109,7 +109,7 @@ class LLMBlock(nn.Module):
 
             try:
                 self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    'openai-community/gpt2',
+                    r'D:\LLM\gpt2',
                     trust_remote_code=True,
                     local_files_only=True
                 )
@@ -213,65 +213,25 @@ class LLMBlock(nn.Module):
         self.word_embeddings = self.llm_model.get_input_embeddings().weight
         self.vocab_size = self.word_embeddings.shape[0]
         self.num_tokens = 3000
-        self.mapping_layer = nn.Linear(self.vocab_size, self.num_tokens)
+        self.word_projection = nn.Linear(self.vocab_size, self.num_tokens)
 
-        self.reprogramming_layer = SelfAttentionLayer(configs.c_out, configs.n_heads, self.d_ff, self.d_llm)
-        self.reprogramming_layer_forecast = SelfAttentionLayer(configs.forecast_dim, configs.n_heads, self.d_ff, self.d_llm)
+        self.crossattention_layer = CrossAttentionLayer(configs.c_out, configs.n_heads, self.d_ff, self.d_llm)
 
         self.llm_model.to(device=self.device)
-        self.mapping_layer.to(device=self.device)
-        self.reprogramming_layer.to(device=self.device)
-        self.reprogramming_layer_forecast.to(device=self.device)
+        self.word_projection.to(device=self.device)
+        self.crossattention_layer.to(device=self.device)
+
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec,)
-            return dec_out[:, -self.pred_len:, :]
+            return dec_out[:, :, :]
         return None
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-
-        if self.use_prompt:
-            x_target = x_enc[:, :, -1:]
-            min_values = torch.min(x_target, dim=1)[0]
-            max_values = torch.max(x_target, dim=1)[0]
-            medians = torch.median(x_target, dim=1).values
-            lags = self.calcute_lags(x_target)
-            trends = x_target.diff(dim=1).sum(dim=1)
-            if self.use_prompt:
-                prompt = []
-                for b in range(x_enc.shape[0]):
-                    min_values_str = str(min_values[b].tolist()[0])
-                    max_values_str = str(max_values[b].tolist()[0])
-                    median_values_str = str(medians[b].tolist()[0])
-                    lags_values_str = str(lags[b].tolist())
-
-                    x_forecast = x_forecast[:,-self.pred_len:,:]
-                    prompt_ = (
-                        f"<|start_prompt|>Dataset description: {self.description}"
-                        f"Task description: forecast the next {str(self.pred_len)} steps given the previous {str(self.seq_len)} steps information; "
-                        "Input statistics: "
-                        f"min value {min_values_str}, "
-                        f"max value {max_values_str}, "
-                        f"median value {median_values_str}, "
-                        f"the trend of input is {'upward' if trends[b] > 0 else 'downward'}, "
-                        f"top {self.top_k} lags are : {lags_values_str}<|end_prompt|>"
-                    )
-
-                    prompt.append(prompt_)
-
-                prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=2048).input_ids
-                prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(x_enc.device))  # (batch, prompt_token, dim)
-
-        source_embeddings = self.mapping_layer(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        enc_out = self.reprogramming_layer(x_enc, source_embeddings, source_embeddings)  # source_embeddings [1000, 768]
-
-        llama_enc_out = enc_out
-
-        if self.use_prompt:
-            llama_enc_out = torch.cat([prompt_embeddings, llama_enc_out], dim=1)  # prompt_embeddings.shape,enc_out.shape, dec_out.shape
-
-        dec_out = self.llm_model(inputs_embeds=llama_enc_out).last_hidden_state
+        word_embeddings = self.word_projection(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        enc_out = self.crossattention_layer(x_enc, word_embeddings, word_embeddings)  # source_embeddings [1000, 768]
+        dec_out = self.llm_model(inputs_embeds=enc_out).last_hidden_state
         return dec_out
 
     def calcute_lags(self, x_enc):
@@ -284,9 +244,9 @@ class LLMBlock(nn.Module):
         return lags
 
 
-class SelfAttentionLayer(nn.Module):
+class CrossAttentionLayer(nn.Module):
     def __init__(self, d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1):
-        super(SelfAttentionLayer, self).__init__()
+        super(CrossAttentionLayer, self).__init__()
 
         d_keys = d_keys or (d_model // n_heads)
 
@@ -322,9 +282,9 @@ class SelfAttentionLayer(nn.Module):
         return reprogramming_embedding
 
 
-class CrossAttentionLayer(nn.Module):
+class SelfAttentionLayer(nn.Module):
     def __init__(self, d_llm, d_model, n_heads, d_keys=None, attention_dropout=0.1):
-        super(CrossAttentionLayer, self).__init__()
+        super(SelfAttentionLayer, self).__init__()
 
         self.query_projection = nn.Linear(d_llm, d_keys * n_heads)
         self.key_projection = nn.Linear(d_model, d_keys * n_heads)
@@ -395,7 +355,7 @@ class Model(nn.Module):
         )
         self.LLM_encoder = LLMBlock(configs)
 
-        self.attention = CrossAttentionLayer(configs.llm_dim, configs.enc_in-self.c_out,configs.n_heads, configs.d_ff)
+        self.attention = SelfAttentionLayer(configs.llm_dim, configs.enc_in-self.c_out,configs.n_heads, configs.d_ff)
         # Decoder
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             self.dec_embedding = DataEmbedding(configs.llm_dim, configs.d_model, configs.embed, configs.freq, configs.dropout)
@@ -422,17 +382,16 @@ class Model(nn.Module):
                 norm_layer=torch.nn.LayerNorm(configs.d_model),
             )
             self.out_projection = nn.Linear(configs.d_model, configs.c_out)
-            self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len+configs.label_len)
+            self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len + configs.label_len)
 
-    def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec, x_forecast):
+    def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         x_enc_other = x_enc[:,:,:-self.c_out]
         x_enc_target = x_enc[:,:,-self.c_out:]
 
-        enc_out_target = self.LLM_encoder(x_enc_target, x_mark_enc, x_dec, x_mark_dec, x_forecast)
+        enc_out_target = self.LLM_encoder(x_enc_target, x_mark_enc, x_dec, x_mark_dec)
         enc_out_other,attn = self.encoder(self.enc_embedding(x_enc_other,x_mark_enc))
 
         dec_in = self.linear_predict(enc_out_target.permute(0,2,1)).permute(0,2,1)
-        # dec_in = enc_out_target
         dec_in = self.dec_embedding(dec_in, x_mark_dec)
 
         dec_out = self.decoder(dec_in, enc_out_other, x_mask=None, cross_mask=None)

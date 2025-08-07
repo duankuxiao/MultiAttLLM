@@ -1,4 +1,4 @@
-from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4
+from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from torch.utils.data import DataLoader
 from data_provider.data_loader_cumstom import Dataset_cumstom
 from data_provider.data_loader_LLM import Dataset_cumstom_llm
@@ -11,8 +11,6 @@ data_dict = {
     'ECL': Dataset_Custom,
     'Traffic': Dataset_Custom,
     'Weather': Dataset_Custom,
-    'm4': Dataset_M4,
-
 }
 
 
@@ -39,35 +37,20 @@ def data_provider(args, flag):
         batch_size = args.batch_size
         freq = args.freq
 
-    if args.data == 'm4':
-        drop_last = False
-        data_set = Data(
-            configs=args,
-            root_path=args.root_path,
-            data_path=args.data_path,
-            flag=flag,
-            size=[args.seq_len, args.label_len, args.pred_len],
-            features=args.features,
-            target=args.target,
-            timeenc=timeenc,
-            freq=freq,
-            seasonal_patterns=args.seasonal_patterns
-        )
-    else:
-        data_set = Data(
-            configs=args,
-            root_path=args.root_path,
-            data_path=args.data_path,
-            flag=flag,
-            size=[args.seq_len, args.label_len, args.pred_len],
-            features=args.features,
-            target=args.target,
-            timeenc=timeenc,
-            freq=freq,
-            percent=percent,
-            scale=args.scale,
-            seasonal_patterns=args.seasonal_patterns,
-        )
+    data_set = Data(
+        configs=args,
+        root_path=args.root_path,
+        data_path=args.data_path,
+        flag=flag,
+        size=[args.seq_len, args.label_len, args.pred_len],
+        features=args.features,
+        target=args.target,
+        timeenc=timeenc,
+        freq=freq,
+        percent=percent,
+        scale=args.scale,
+        seasonal_patterns=args.seasonal_patterns,
+    )
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
