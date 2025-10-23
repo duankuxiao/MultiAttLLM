@@ -42,6 +42,8 @@ class LLMBlock(nn.Module):
         self.d_ff = configs.d_ff
         self.top_k = configs.top_k
         self.d_llm = configs.llm_dim
+        self.patch_len = configs.patch_len
+        self.stride = configs.stride
 
         self.use_prompt = configs.use_prompt
         self.use_forecast = configs.use_forecast
@@ -204,17 +206,25 @@ class LLMBlock(nn.Module):
             param.requires_grad = False
 
         self.dropout = nn.Dropout(configs.dropout)
+        self.patch_embedding = PatchEmbedding(configs.d_model, self.patch_len, self.stride, configs.dropout)
+        self.patch_nums = int((configs.seq_len - self.patch_len) / self.stride + 2)
 
         self.word_embeddings = self.llm_model.get_input_embeddings().weight
         self.vocab_size = self.word_embeddings.shape[0]
         self.num_tokens = 3000
         self.word_projection = nn.Linear(self.vocab_size, self.num_tokens)
+        self.head_nf = self.d_ff * self.patch_nums
 
-        self.crossattention_layer = CrossAttentionLayer(configs.c_out, configs.n_heads, self.d_ff, self.d_llm)
+        self.output_projection = FlattenHead(configs.enc_in, self.head_nf, self.pred_len + configs.label_len, head_dropout=configs.dropout)
 
+        self.crossattention_layer = CrossAttentionLayer(configs.d_model, configs.n_heads, self.d_ff, self.d_llm)
+        self.normalize_layers = Normalize(configs.enc_in, affine=False)
         self.llm_model.to(device=self.device)
         self.word_projection.to(device=self.device)
         self.crossattention_layer.to(device=self.device)
+        self.patch_embedding.to(device=self.device)
+        self.output_projection.to(device=self.device)
+
 
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
@@ -224,9 +234,18 @@ class LLMBlock(nn.Module):
         return None
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
+        x_enc = self.normalize_layers(x_enc, 'norm')
         word_embeddings = self.word_projection(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        enc_out = self.crossattention_layer(x_enc, word_embeddings, word_embeddings)  # source_embeddings [1000, 768]
+        x_enc = x_enc.permute(0, 2, 1).contiguous()
+        enc_out, n_vars = self.patch_embedding(x_enc.to(torch.bfloat16))
+        enc_out = self.crossattention_layer(enc_out, word_embeddings, word_embeddings)  # source_embeddings [1000, 768]
         dec_out = self.llm_model(inputs_embeds=enc_out).last_hidden_state
+        dec_out = dec_out[:, :, :self.d_ff]
+        dec_out = torch.reshape(dec_out, (-1, n_vars, dec_out.shape[-2], dec_out.shape[-1]))
+        dec_out = dec_out.permute(0, 1, 3, 2).contiguous()
+        dec_out = self.output_projection(dec_out[:, :, :, -self.patch_nums:])
+        dec_out = dec_out.permute(0, 2, 1).contiguous()
+        dec_out = self.normalize_layers(dec_out, 'denorm')
         return dec_out
 
     def calcute_lags(self, x_enc):
@@ -307,7 +326,7 @@ class Model(nn.Module):
 
         # Decoder
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            self.dec_embedding = DataEmbedding(configs.llm_dim, configs.d_model, configs.embed, configs.freq, configs.dropout)
+            self.dec_embedding = DataEmbedding(configs.c_out, configs.d_model, configs.embed, configs.freq, configs.dropout)
 
             # Embedding
             self.selfattention_layer = Decoder(
@@ -339,8 +358,7 @@ class Model(nn.Module):
 
         enc_out_target = self.LLM_encoder(x_enc_target, x_mark_enc, x_dec, x_mark_dec)
         enc_out_other,attn = self.encoder(self.enc_embedding(x_enc_other,x_mark_enc))
-
-        dec_in = self.linear_predict(enc_out_target.permute(0,2,1)).permute(0,2,1)
+        dec_in = enc_out_target
         dec_in = self.dec_embedding(dec_in, x_mark_dec)
 
         dec_out = self.selfattention_layer(dec_in, enc_out_other, x_mask=None, cross_mask=None)
