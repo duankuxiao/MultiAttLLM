@@ -85,7 +85,9 @@ if __name__ == '__main__':
     for model in ['RNN', 'DLinear', 'Transformer', 'Informer', 'iTransformer', 'PatchTST', 'TimesNet', 'LLMformer']:
         for mask_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
             args = deepcopy(default_args)
-            args.mask_method = 'rdo'
+
+            args.mask_method = 'mcar'
+
             if args.mask_method == 'rdo':
                 if mask_rate == 0.1:
                     args.fix_seed = 9974213

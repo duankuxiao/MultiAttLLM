@@ -1,26 +1,11 @@
-from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4
+from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from torch.utils.data import DataLoader
 from data_provider.data_loader_cumstom import Dataset_cumstom, Dataset_classification
 from data_provider.data_loader_LLM import Dataset_cumstom_llm
-from data_provider.uea import collate_fn
-
-data_dict = {
-    'ETTh1': Dataset_ETT_hour,
-    'ETTh2': Dataset_ETT_hour,
-    'ETTm1': Dataset_ETT_minute,
-    'ETTm2': Dataset_ETT_minute,
-    'ECL': Dataset_Custom,
-    'Traffic': Dataset_Custom,
-    'Weather': Dataset_Custom,
-    'm4': Dataset_M4,
-}
 
 
 def data_provider(args, flag):
-    if args.data in data_dict:
-        Data = data_dict[args.data]
-    else:
-        Data = Dataset_cumstom
+    Data = Dataset_cumstom
 
     if args.model == 'TimeLLM':
         Data = Dataset_cumstom  # Dataset_solar_radiation_llm
