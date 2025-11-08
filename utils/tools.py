@@ -175,16 +175,30 @@ def visual(true, preds=None, name='./pic/test.pdf'):
     plt.legend()
     plt.savefig(name, bbox_inches='tight')
 
-def heatmap(data,data_path):
+
+def heatmap(data,output_file):
     data_coor = data.corr()
     mask = np.zeros_like(data_coor, dtype=bool)
-    mask[np.triu_indices_from(mask)] = True
+    mask[np.triu_indices_from(mask)] = False
     print(data_coor)
+    data_coor.to_csv(output_file+'.csv')
     plt.rcParams.update({'font.size': 8})
     plt.subplots(figsize=(18, 22), dpi=1080, facecolor='w')
     fig = sns.heatmap(data_coor, annot=True, mask=mask, vmin=-1, vmax=1, square=True, cmap="viridis", fmt='.2f', annot_kws={"size": 8},
                       cbar_kws={'shrink': 0.85, 'aspect': 13})
-    plt.savefig('{}.png'.format(data_path))
+    plt.savefig('{}.png'.format(output_file))
     plt.xticks(fontsize=8)
     plt.yticks(fontsize=8)
     plt.show()
+
+
+def cal_accuracy(y_pred, y_true):
+    return np.mean(y_pred == y_true)
+
+if __name__ == '__main__':
+    path = r'D:\Time-LLM-main\results\noforecast\1_DLinear_aircon_ftM_sl6_ll6_pl36_sd20_td5_dm32_nh8_el4_dl4_df64_fc3_dropout0.1_ebtimeF_test_0_scale\checkpoints\configs.pkl'
+    configs = load_config(path)
+    print(configs)
+    path = r'D:\Time-LLM-main\results\1_DLinear_aircon_ftM_sl6_ll6_pl36_sd20_td5_dm32_df64_nh8_el4_dl4_ma13_fc3_dropout0.1_ebtimeF_test_0_scale\checkpoints\configs.pkl'
+    configs = load_config(path)
+    print(configs)

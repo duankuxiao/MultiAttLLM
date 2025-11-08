@@ -54,8 +54,8 @@ class Dataset_cumstom_llm(Dataset):
         r_begin = s_end - self.label_len
         r_end = r_begin + self.label_len + self.pred_len
         if self.features == 'M' or self.features == 'MS':
-            seq_x = self.data_x[s_begin:s_end, feat_id:feat_id + 1] if self.set_type != 2 else self.data_x[s_begin:s_end, -1:]
-            seq_y = self.data_y[r_begin:r_end, feat_id:feat_id + 1] if self.set_type != 2 else self.data_y[r_begin:r_end, -1:]
+            seq_x = self.data_x[s_begin:s_end, feat_id:feat_id + 1]  # if self.set_type != 2 else self.data_x[s_begin:s_end, -1:]
+            seq_y = self.data_y[r_begin:r_end, feat_id:feat_id + 1]  # if self.set_type != 2 else self.data_y[r_begin:r_end, -1:]
         elif self.features == 'S':
             seq_x = self.data_x[s_begin:s_end, -1:]
             seq_y = self.data_y[r_begin:r_end, -1:]

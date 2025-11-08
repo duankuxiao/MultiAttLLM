@@ -1,6 +1,6 @@
 import os
 import torch
-from models import TimeLLM, TimesNet, DLinear, MultiAttLLM, iTransformer, RNN
+from models import TimeLLM, TimesNet, DLinear, Informer, Transformer, iTransformer, RNN, PatchTST, LLMformer, MultiAttLLM
 
 
 class Exp_Basic(object):
@@ -9,11 +9,14 @@ class Exp_Basic(object):
         self.model_dict = {
             'TimesNet': TimesNet,
             'DLinear': DLinear,
+            'Informer': Informer,
+            'Transformer': Transformer,
             'TimeLLM': TimeLLM,
             'iTransformer': iTransformer,
             'RNN': RNN,
+            'PatchTST':PatchTST,
+            'LLMformer':LLMformer,
             'MultiAttLLM':MultiAttLLM,
-
         }
         if args.model == 'Mamba':
             print('Please make sure you have successfully installed mamba_ssm')
@@ -53,11 +56,11 @@ class Exp_Basic(object):
     def _get_data(self):
         pass
 
-    def vali(self):
+    def vali(self, vali_data, vali_loader, criterion):
         pass
 
-    def train(self):
+    def train(self, setting):
         pass
 
-    def test(self):
+    def test(self, setting, test, path):
         pass
