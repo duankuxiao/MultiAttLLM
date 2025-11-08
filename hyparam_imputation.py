@@ -127,8 +127,8 @@ def model_hyparameter_setup(args):
         args.use_norm = True
         args.train_epochs = 10
         if args.task_name == 'imputation':
-            args.d_model = 32  # min{max[2**log(seq_dim),32],512} for forecast   min{max[2**log(seq_dim),64],128} for imputation
-            args.d_ff = 32
+            args.d_model = 64  # min{max[2**log(seq_dim),32],512} for forecast   min{max[2**log(seq_dim),64],128} for imputation
+            args.d_ff = 64
             args.top_k = 3  # 5 for forecast   3 for imputation, classification, anomaly detection
         elif args.task_name == 'classification':
             args.d_model = 256
