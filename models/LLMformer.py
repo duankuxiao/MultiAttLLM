@@ -12,9 +12,8 @@ from transformers import LlamaConfig, LlamaModel, LlamaTokenizer, GPT2Config, GP
 from layers.Embed import PatchEmbedding
 import transformers
 from layers.StandardNorm import Normalize
-from utils.interval_forecasting_tools import gaussian_sample, negative_binomial_sample
 from utils.masking import masked_standardize_3d
-from .Distribution import Gaussian,NegativeBinomial
+
 
 
 transformers.logging.set_verbosity_error()
@@ -311,15 +310,6 @@ class LLMBlock(nn.Module):
         if self.task_name == 'imputation':
             self.output_projection = FlattenHead(configs.enc_in, self.head_nf, self.seq_len, head_dropout=configs.dropout)
             self.output_projection.to(device=self.device)
-        if self.task_name == 'interval_forecast':
-            if configs.likelihood == "g":
-                # self.likelihood_layer = Gaussian(configs.d_model, configs.c_out)
-                self.likelihood_layer_mu = FlattenHead(configs.enc_in, self.head_nf, self.pred_len, head_dropout=configs.dropout)
-                self.likelihood_layer_sigma = FlattenHead(configs.enc_in, self.head_nf, self.pred_len, head_dropout=configs.dropout)
-            elif configs.likelihood == "nb":
-                self.likelihood_layer = NegativeBinomial(configs.d_model, configs.c_out)
-            else:
-                self.likelihood_layer = Gaussian(configs.d_model, configs.c_out)
 
         self.normalize_layers = Normalize(configs.enc_in, affine=False)
         self.llm_model.to(device=self.device)
@@ -729,14 +719,6 @@ class Model(nn.Module):
             self.projection = nn.Linear(transformer_d_model, configs.c_out)
             # self.projection = nn.Linear(configs.d_model, configs.pred_len, bias=True)
             # self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len+configs.label_len)
-        if self.task_name == 'interval_forecast':
-            self.projection = nn.Linear(transformer_d_model, configs.c_out)
-            if configs.likelihood == "g":
-                self.likelihood_layer = Gaussian(transformer_d_model, configs.c_out)
-            elif configs.likelihood == "nb":
-                self.likelihood_layer = NegativeBinomial(transformer_d_model, configs.c_out)
-            else:
-                self.likelihood_layer = Gaussian(transformer_d_model, configs.c_out)
         if self.task_name == 'imputation':
             self.output_projection = nn.Linear(configs.d_model, configs.c_out, bias=True)
         if self.task_name == 'anomaly_detection':
