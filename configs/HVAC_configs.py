@@ -19,8 +19,6 @@ args.feature_cols = ['Temperature', 'Dewpoint','Dry_Bulb_Temperature', 'Wet_Bulb
                      'Chilled_Water_Pump_Efficiency',   'Chilled_Water_Bypass_Temperature', 'Chilled_Water_Return_Temperature', 'Chilled_Water_Supply_Temperature',
                      'Total_Power', 'System_COP', 'System_Energy_Efficiency']
 
-#
-
 args.target = ['Total_Power','Total_Chiller_Power','System_Energy_Efficiency','Total_Cooling_Capacity']
 args.num_train = 35136  # 2023/03/08 - 2024/03/07
 args.num_test = 15840  # # 2024/03/08
