@@ -362,12 +362,11 @@ class Exp_Imputation(Exp_Basic):
                 else:
                     output = output[:, :self.args.seq_len, -self.f_dim:]
                 true = batch_x[:, :self.args.seq_len, -self.f_dim:]
-                output = mask * true + (1 - mask) * output
 
                 imputation = output.detach().cpu().numpy()
                 mask = mask.detach().cpu().numpy()
-
                 true = true.detach().cpu().numpy()
+                imputation = mask * true + (1 - mask) * imputation
 
                 if test_data.scale and self.args.inverse:
                     shape = imputation.shape
