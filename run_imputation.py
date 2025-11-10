@@ -83,10 +83,12 @@ if __name__ == '__main__':
     all_results_imputation = []
     all_results = []
     for model in ['RNN', 'DLinear', 'Transformer', 'Informer', 'iTransformer', 'PatchTST', 'TimesNet', 'LLMformer']:
+    # for model in ['iTransformer']:
+
         for mask_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
             args = deepcopy(default_args)
 
-            args.mask_method = 'mcar'
+            args.mask_method = 'mar'
 
             if args.mask_method == 'rdo':
                 if mask_rate == 0.1:

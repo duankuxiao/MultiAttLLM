@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from layers.Transformer_EncDec import Encoder, EncoderLayer
 from layers.SelfAttention_Family import FullAttention, AttentionLayer
 from layers.Embed import DataEmbedding_inverted
-import numpy as np
+from utils.interval_forecasting_tools import gaussian_sample, negative_binomial_sample
+from .Distribution import Gaussian,NegativeBinomial
 
 
 class Model(nn.Module):
@@ -19,9 +20,19 @@ class Model(nn.Module):
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
         self.output_attention = configs.output_attention
+        self.likelihood = configs.likelihood
+        self.use_norm = configs.use_norm
+        self.output_ori = configs.output_ori
+
         # Embedding
         self.enc_embedding = DataEmbedding_inverted(configs.seq_len, configs.d_model, configs.embed, configs.freq,
                                                     configs.dropout)
+
+        self.use_forecast = configs.use_forecast
+        if self.use_forecast:
+            self.forecast_projection = nn.Linear(configs.forecast_dim, configs.enc_in)
+            self.enc_embedding = DataEmbedding_inverted(configs.seq_len+configs.pred_len, configs.d_model, configs.embed, configs.freq,
+                                                        configs.dropout)
         # Encoder
         self.encoder = Encoder(
             [
@@ -38,8 +49,18 @@ class Model(nn.Module):
             norm_layer=torch.nn.LayerNorm(configs.d_model)
         )
         # Decoder
-        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
+        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast' or self.task_name == 'interval_forecast':
             self.projection = nn.Linear(configs.d_model, configs.pred_len, bias=True)
+        if self.task_name == 'imputation_forecast':
+            self.projection = nn.Linear(configs.d_model, configs.seq_len + configs.pred_len, bias=True)
+
+        if self.task_name == 'interval_forecast':
+            if configs.likelihood == "g":
+                self.likelihood_layer = Gaussian(configs.d_model, configs.pred_len)
+            elif configs.likelihood == "nb":
+                self.likelihood_layer = NegativeBinomial(configs.d_model, configs.pred_len)
+            else:
+                self.likelihood_layer = Gaussian(configs.d_model, configs.pred_len)
         if self.task_name == 'imputation':
             self.projection = nn.Linear(configs.d_model, configs.seq_len, bias=True)
         if self.task_name == 'anomaly_detection':
@@ -49,12 +70,23 @@ class Model(nn.Module):
             self.dropout = nn.Dropout(configs.dropout)
             self.projection = nn.Linear(configs.d_model * configs.enc_in, configs.num_class)
 
-    def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-        # Normalization from Non-stationary Transformer
-        means = x_enc.mean(1, keepdim=True).detach()
-        x_enc = x_enc - means
-        stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
-        x_enc /= stdev
+    def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec,x_forecast=None):
+        if self.use_norm:
+            # Normalization from Non-stationary Transformer
+            means = x_enc.mean(1, keepdim=True).detach()
+            x_enc = x_enc - means
+            stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            x_enc /= stdev
+
+        if self.use_forecast:
+            if self.use_norm:
+                means_forecast = x_forecast.mean(1, keepdim=True).detach()
+                x_enc_forecast = x_forecast - means_forecast
+                stdev_forecast = torch.sqrt(torch.var(x_enc_forecast, dim=1, keepdim=True, unbiased=False) + 1e-5)
+                x_forecast /= stdev_forecast
+            x_forecast_ = self.forecast_projection(x_forecast[:,-self.pred_len:,:])
+            x_enc = torch.cat((x_enc, x_forecast_), dim=1)
+            x_mark_enc = x_mark_dec
 
         _, _, N = x_enc.shape
 
@@ -63,12 +95,70 @@ class Model(nn.Module):
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
 
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, -self.c_out:]
-        # De-Normalization from Non-stationary Transformer
-        dec_out = dec_out * (stdev[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
-        dec_out = dec_out + (means[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+        if self.use_norm:
+            # De-Normalization from Non-stationary Transformer
+            dec_out = dec_out * (stdev[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            dec_out = dec_out + (means[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
         return dec_out
 
+    def interval_forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec,x_forecast=None):
+        if self.use_norm:
+            # Normalization from Non-stationary Transformer
+            means = x_enc.mean(1, keepdim=True).detach()
+            x_enc = x_enc - means
+            stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            x_enc /= stdev
+
+        if self.use_forecast:
+            means_forecast = x_forecast.mean(1, keepdim=True).detach()
+            x_enc_forecast = x_forecast - means_forecast
+            stdev_forecast = torch.sqrt(torch.var(x_enc_forecast, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            x_forecast /= stdev_forecast
+            x_forecast_ = self.forecast_projection(x_forecast[:,-self.pred_len:,:])
+            x_enc = torch.cat((x_enc, x_forecast_), dim=1)
+            x_mark_enc = x_mark_dec
+
+        _, _, N = x_enc.shape
+
+        # Embedding
+        enc_out = self.enc_embedding(x_enc, x_mark_enc)
+        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+
+        dec_out, mu, sigma = self.likelihood_layer(enc_out)
+
+        dec_out, mu, sigma = dec_out.permute(0, 2, 1)[:, :, -self.c_out:], mu.permute(0, 2, 1)[:, :, -self.c_out:] , sigma.permute(0, 2, 1)[:, :, -self.c_out:]
+        if self.use_norm:
+            # De-Normalization from Non-stationary Transformer
+            mu = mu * (stdev[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            mu = mu + (means[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            sigma = sigma * (stdev[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            dec_out = dec_out * (stdev[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            dec_out = dec_out + (means[:, 0, -self.c_out:].unsqueeze(1).repeat(1, self.pred_len, 1))
+        return dec_out, mu, sigma
+
     def imputation(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask):
+        if self.use_norm:
+            # Normalization from Non-stationary Transformer
+            means = x_enc.mean(1, keepdim=True).detach()
+            x_enc = x_enc - means
+            stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            x_enc /= stdev
+
+        _, L, N = x_enc.shape
+
+        # Embedding
+        enc_out = self.enc_embedding(x_enc, x_mark_enc)
+        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+
+        dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
+        if self.use_norm:
+
+            # De-Normalization from Non-stationary Transformer
+            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, L, 1))
+            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, L, 1))
+        return dec_out
+
+    def imputation_forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask):
         # Normalization from Non-stationary Transformer
         means = x_enc.mean(1, keepdim=True).detach()
         x_enc = x_enc - means
@@ -83,8 +173,8 @@ class Model(nn.Module):
 
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
         # De-Normalization from Non-stationary Transformer
-        dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, L, 1))
-        dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, L, 1))
+        dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.pred_len + self.seq_len, 1))
+        dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.pred_len + self.seq_len, 1))
         return dec_out
 
     def anomaly_detection(self, x_enc):
@@ -118,17 +208,27 @@ class Model(nn.Module):
         output = self.projection(output)  # (batch_size, num_classes)
         return output
 
-    def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
+    def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,x_forecast=None, mask=None):
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
+            dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec,x_forecast)
             return dec_out[:, -self.pred_len:, :]  # [B, L, D]
+        if self.task_name == 'imputation_forecast':
+            dec_out = self.imputation_forecast(x_enc, x_mark_enc, x_dec, x_mark_dec, x_forecast)
+            if self.output_ori:
+                dec_out[:, :self.seq_len, -self.c_out:] = mask[:, :, -self.c_out:] * x_enc[:, :self.seq_len, -self.c_out:] + (1 - mask[:, :, -self.c_out:]) * dec_out[:, :self.seq_len, -self.c_out:]
+            return dec_out  # [B, L, D]
         if self.task_name == 'imputation':
             dec_out = self.imputation(x_enc, x_mark_enc, x_dec, x_mark_dec, mask)
-            return dec_out  # [B, L, D]
+            if self.output_ori:
+                dec_out = mask * x_enc + (1 - mask) * dec_out
+            return dec_out[:, :, -self.c_out:]  # [B, L, D]
         if self.task_name == 'anomaly_detection':
             dec_out = self.anomaly_detection(x_enc)
             return dec_out  # [B, L, D]
         if self.task_name == 'classification':
             dec_out = self.classification(x_enc, x_mark_enc)
             return dec_out  # [B, N]
+        if self.task_name == 'interval_forecast':
+            dec_out, mu, sigama = self.interval_forecast(x_enc, x_mark_enc, x_dec, x_mark_dec, x_forecast)
+            return dec_out[:, -self.pred_len:, :], mu[:, -self.pred_len:, :], sigama[:, -self.pred_len:, :]
         return None
