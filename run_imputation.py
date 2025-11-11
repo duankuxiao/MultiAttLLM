@@ -132,6 +132,8 @@ if __name__ == '__main__':
 
             args.task_name = 'imputation'
             args.mask_target_only = False
+            args.input_inter = True
+
             args.pred_len = 0
             args.label_len = 0
             args = model_hyparameter_setup(args)

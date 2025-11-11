@@ -47,12 +47,17 @@ parser.add_argument('--feature_cols', nargs='+', default=None, help="input featu
 
 # imputation task
 parser.add_argument('--mask_rate', type=float, default=0.2, help='mask_rate')
+parser.add_argument('--mask_method', type=str, default='rdo', help='mask_method')
+
 parser.add_argument('--ori_weight', type=float, default=1, help='ori_weight')
 parser.add_argument('--missing_weight', type=float, default=1, help='missing_weight')
 parser.add_argument('--pred_weight', type=float, default=1, help='pred_weight')
+parser.add_argument('--input_inter',default=False, help='whether to use input interpolation')
 parser.add_argument('--interpolate_method', type=str, default='linear', help=['linear','polynomial', 'spline'])
-parser.add_argument('--interpolate_order', type=int, default=2, help='1<order<5 for spline, 2 or odd number for polynomial')
-parser.add_argument('--mask_target_only', action='store_true', default=False, help='mask_target_only')
+parser.add_argument('--interpolate_order', type=int, default=1, help='1<order<5 for spline, 2 or odd number for polynomial')
+parser.add_argument('--mask_target_only', default=False, help='mask_target_only')
+parser.add_argument('--output_ori', default=True, help='mask_target_only')
+
 
 parser.add_argument('--seasonal_patterns', type=str, default='Hourly', help='subset for M4')
 parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
@@ -80,7 +85,7 @@ parser.add_argument('--down_sampling_layers', type=int, default=0, help='num of 
 parser.add_argument('--down_sampling_method', type=str, default=None, help='down sampling method, only support avg, max, conv')
 parser.add_argument('--channel_independence', type=int, default=1, help='0: channel dependence 1: channel independence for FreTS model')
 parser.add_argument('--decomp_method', type=str, default='moving_avg', help='method of series decompsition, only support moving_avg or dft_decomp')
-parser.add_argument('--use_norm', type=int, default=1, help='whether to use normalize; True 1 False 0')
+parser.add_argument('--use_norm', type=bool, default=True, help='whether to use normalize; True  False ')
 
 parser.add_argument('--factor', type=int, default=1, help='attn factor')
 parser.add_argument('--dropout', type=float, default=0.1, help='dropout')
@@ -110,7 +115,7 @@ parser.add_argument('--val', type=bool, default=True, help='validation')
 
 parser.add_argument('--itr', type=int, default=1, help='experiments times')
 parser.add_argument('--train_epochs', type=int, default=20, help='train epochs')
-parser.add_argument('--batch_size', type=int, default=24, help='batch size of train input data')
+parser.add_argument('--batch_size', type=int, default=16, help='batch size of train input data')
 parser.add_argument('--patience', type=int, default=6, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='optimizer learning rate 0.0001 for other models  0.01 for LLM')
 parser.add_argument('--des', type=str, default='test', help='exp description')
@@ -123,6 +128,8 @@ parser.add_argument('--use_amp', action='store_true', help='use automatic mixed 
 parser.add_argument('--percent', type=int, default=100)
 parser.add_argument('--likelihood', type=str, default='g', help='exp description  g or nb')
 parser.add_argument("--sample_size", type=int, default=500)
+parser.add_argument("--fix_seed", type=int, default=4213)
+
 
 # metrics (dtw)
 parser.add_argument('--use_dtw', type=bool, default=False, help='the controller of using dtw metric (dtw is time consuming, not suggested unless necessary)')

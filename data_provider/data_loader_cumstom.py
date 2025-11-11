@@ -1,9 +1,14 @@
+import datetime
 import os
 import numpy as np
 import pandas as pd
+import torch
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
+
+from utils.masking import mask_custom
+from utils.metrics_imputation import interpolate_nan_matrix
 from utils.timefeatures import time_features
 import warnings
 
@@ -14,7 +19,7 @@ class Dataset_cumstom(Dataset):
     def __init__(self,configs, root_path, flag='train', size=None,
                  features='S', data_path='PV_power.csv',
                  target=['PV'], scale=True, timeenc=0, freq='h', percent=100,seasonal_patterns=None):
-
+        self.configs = configs
         self.num_train = configs.num_train
         self.num_test = configs.num_test
         self.task_name = configs.task_name
@@ -23,14 +28,9 @@ class Dataset_cumstom(Dataset):
         self.forecast_dim = configs.forecast_dim
         self.feature_cols = configs.feature_cols
         self.c_out = configs.c_out
-        if size == None:
-            self.seq_len = 24 * 3
-            self.label_len = 24
-            self.pred_len = 24
-        else:
-            self.seq_len = size[0]
-            self.label_len = size[1]
-            self.pred_len = size[2]
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
         # init
         assert flag in ['train', 'test', 'val']
         type_map = {'train': 0, 'val': 1, 'test': 2}
@@ -45,9 +45,6 @@ class Dataset_cumstom(Dataset):
 
         self.root_path = root_path
         self.data_path = data_path
-        # if flag == 'test':
-        #     self.source_data_path = 'operational_data.csv'
-        #     self.data_path = 'operational_data.csv'
 
         self.__read_data__()
 
@@ -66,7 +63,11 @@ class Dataset_cumstom(Dataset):
             s_end = s_begin + self.seq_len
             seq_x = self.data_x[s_begin:s_end, :]
             seq_x_mark = self.data_stamp[s_begin:s_end]
-            return seq_x, seq_x, seq_x_mark, seq_x_mark, seq_x
+            seq_x_withmask = self.data_withmask[s_begin:s_end, :]
+            seq_x_ori = self.data_ori[s_begin:s_end, :]
+            mask = self.mask[s_begin:s_end, :]
+            seq_inter = self.data_inter[s_begin:s_end, :]
+            return seq_x, seq_inter, seq_x_mark, mask, seq_x_ori
         else:
             s_begin = index % self.tot_len
             # s_begin = (index // 24) * 24
@@ -131,7 +132,6 @@ class Dataset_cumstom(Dataset):
             border1s = [0, - num_vali - self.num_test - self.seq_len, - self.num_test - self.seq_len]
             border2s = [self.num_train, - self.num_test - self.seq_len, len(df_raw)]
 
-
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
@@ -177,15 +177,22 @@ class Dataset_cumstom(Dataset):
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
-
+        if self.task_name == 'imputation':
+            data_ori = data
+            self.data_withmask, self.mask, data = mask_custom(torch.Tensor(data).unsqueeze(dim=0), mask_rate=self.configs.mask_rate, method=self.configs.mask_method, f_dim=self.c_out, seed=self.configs.fix_seed,targets_only=self.configs.mask_target_only)
+            self.data_ori = data_ori[border1:border2, :len(self.feature_cols)]
+            self.data_withmask, self.mask, data = self.data_withmask.squeeze(dim=0).numpy(), self.mask.squeeze(dim=0).numpy(), data.squeeze(dim=0).numpy()
+            self.data_inter = interpolate_nan_matrix(self.data_withmask)
         if self.features == 'S':
             self.data_x = data[border1:border2, -1:]
             self.data_y = data[border1:border2, -1:]
         else:
             self.data_x = data[border1:border2, :len(self.feature_cols)]
             self.data_y = data[border1:border2, -len(self.target):]
+
         self.data_forecast = data[border1:border2, :self.forecast_dim]
         self.data_stamp = data_stamp
+
 
 class Dataset_classification(Dataset):
     def __init__(self,configs, root_path, flag='train', size=None,

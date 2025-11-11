@@ -16,7 +16,7 @@ from utils.dtw_metric import dtw, accelerated_dtw
 from utils.augmentation import run_augmentation, run_augmentation_single
 from utils.tools import results_evaluation, save_config
 from utils.masking import mask_custom
-from utils.metrics_imputation import calc_mae, calc_mse, results_evaluation_imputation, interpolate_nan_matrix
+from utils.metrics_imputation import calc_mae, calc_mse, results_evaluation_imputation, interpolate_nan_matrix, interpolate_time_series
 
 from torch.optim import lr_scheduler
 
@@ -89,7 +89,7 @@ class Exp_Imputation(Exp_Basic):
                 missing_loss = criterion(outputs, true, mask_)
                 ori_loss = criterion(outputs, true, mask)
                 if self.loss_method == "fix":
-                    loss = ori_loss + 10 * missing_loss
+                    loss = ori_loss + missing_loss
                 elif self.loss_method == "adaptive":
                     # loss = 0.5 * (torch.exp(-self.log_sigma_missing.to(true.device)) * missing_loss + torch.exp(-self.log_sigma_ori.to(true.device)) * ori_loss +
                     #               self.log_sigma_missing.to(true.device) + self.log_sigma_ori.to(true.device))
@@ -112,23 +112,20 @@ class Exp_Imputation(Exp_Basic):
         total_loss = []
         self.model.eval()
         with torch.no_grad():
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark, x_forecast) in enumerate(vali_loader):
-                f_dim = self.args.c_out
-                _, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method,f_dim=f_dim,seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
+            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(vali_loader):
+                # inp_withmask, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method,f_dim=f_dim,seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
 
-                inp = inp.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
-                mask = mask.to(self.device)
+                mask = mask.int().to(self.device)
 
                 # encoder - decoder
-
-                if self.args.output_attention:
-                    outputs = self.model(inp, batch_x_mark, None, None, None,mask=mask)[0]
+                if self.args.input_inter:
+                    inp_inter = inp_inter.float().to(self.device)
+                    outputs = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
                 else:
+                    inp = inp.float().to(self.device)
                     outputs = self.model(inp, batch_x_mark, None, None, None,mask=mask)
 
-                if self.args.accelerate:
-                    outputs, batch_x = self.accelerator.gather_for_metrics((outputs, batch_x))
                 if isinstance(outputs, tuple):
                     outputs = tuple(
                         o[:, :self.args.seq_len, -self.f_dim:].detach().cpu()
@@ -138,11 +135,11 @@ class Exp_Imputation(Exp_Basic):
                     outputs = outputs[:, :self.args.seq_len, -self.f_dim:]
                     outputs = outputs.detach().cpu()
 
-                batch_x = batch_x[:, :self.args.seq_len, -self.f_dim:]
+                x_ori = x_ori[:, :self.args.seq_len, -self.f_dim:]
                 mask = mask[:, :self.args.seq_len, -self.f_dim:]
 
                 mask = mask.detach().cpu()
-                loss = self._loss_function(criterion, outputs, batch_x, mask)
+                loss = self._loss_function(criterion, outputs, x_ori, mask)
 
                 total_loss.append(loss.item())
         total_loss = np.average(total_loss)
@@ -186,44 +183,35 @@ class Exp_Imputation(Exp_Basic):
 
             self.model.train()
             epoch_time = time.time()
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark, x_forecast) in enumerate(train_loader):
+            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(train_loader):
                 iter_count += 1
                 model_optim.zero_grad()
-                batch_x = batch_x.float()
                 batch_x_mark = batch_x_mark.float()
 
                 # imputation input
-                f_dim = self.args.c_out
-                _, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method, f_dim=f_dim, seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
+                x_ori = x_ori.float().to(self.device)
+                batch_x_mark = batch_x_mark.to(self.device)
+                mask = mask.int().to(self.device)
 
-                if self.args.accelerate:
-                    pass
-
+                # encoder - decoder
+                if self.args.input_inter:
+                    inp_inter = inp_inter.float().to(self.device)
+                    outputs = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
                 else:
-                    batch_x = batch_x.to(self.device)
-                    batch_x_mark = batch_x_mark.to(self.device)
-                    inp = inp.to(self.device)
-                    mask = mask.to(self.device)
-                    if torch.isnan(inp).any():
-                        print(inp)
+                    inp = inp.float().to(self.device)
+                    outputs = self.model(inp, batch_x_mark, None, None, None, mask=mask)
 
-                    # encoder - decoder
-                    if self.args.output_attention:
-                        outputs = self.model(inp, batch_x_mark, None, None, None, mask=mask)[0]
-                    else:
-                        outputs = self.model(inp, batch_x_mark, None, None, None, mask=mask)
-
-                    if isinstance(outputs, tuple):
-                        outputs = tuple(
-                            o[:, :self.args.seq_len, -self.f_dim:]
-                            for o in outputs
-                        )
-                    else:
-                        outputs = outputs[:, :self.args.seq_len, -self.f_dim:]
-                    batch_x = batch_x[:, :self.args.seq_len, -self.f_dim:]
-                    mask = mask[:, :self.args.seq_len, -self.f_dim:]
-                    loss = self._loss_function(criterion, outputs, batch_x, mask)
-                    train_loss.append(loss.item())
+                if isinstance(outputs, tuple):
+                    outputs = tuple(
+                        o[:, :self.args.seq_len, -self.f_dim:]
+                        for o in outputs
+                    )
+                else:
+                    outputs = outputs[:, :self.args.seq_len, -self.f_dim:]
+                x_ori = x_ori[:, :self.args.seq_len, -self.f_dim:]
+                mask = mask[:, :self.args.seq_len, -self.f_dim:]
+                loss = self._loss_function(criterion, outputs, x_ori, mask)
+                train_loss.append(loss.item())
 
                 if self.args.accelerate:
                     self.accelerator.print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
@@ -236,7 +224,11 @@ class Exp_Imputation(Exp_Basic):
                         print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                         speed = (time.time() - time_now) / iter_count
                         left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                        print('\tspeed: {:.4f}s/iter; left time: {:.2f}min'.format(speed, left_time / 60))
+                        if speed > 1e-3:
+                            print('\tspeed: {:.4f}s/iter; left time: {:.2f}min'.format(speed, left_time / 60))
+                        else:
+                            print('\tspeed: {:.4f}ms/iter; left time: {:.2f}min'.format(speed*1000, left_time / 60))
+
                         iter_count = 0
                         time_now = time.time()
 
@@ -308,7 +300,7 @@ class Exp_Imputation(Exp_Basic):
         print(report)
         peak_alloc = torch.cuda.max_memory_allocated(self.device)
         used_bytes = torch.cuda.memory_allocated(self.device)
-        with open(os.path.join(folder_path,"memory_summary_{}_{}.txt".format(round(used_bytes*1024/(10**9),1),round(speed*1000,2))), "w") as f:
+        with open(os.path.join(folder_path,"memory_summary_{}_{}.txt".format(round(peak_alloc*1024/(10**9),1),round(speed*1000,2))), "w") as f:
             f.write(report)
         print("Saved CUDA memory summary to cuda_memory_summary.txt")
         return self.model
@@ -337,19 +329,15 @@ class Exp_Imputation(Exp_Basic):
         self.model.eval()
 
         with torch.no_grad():
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark, x_forecast) in enumerate(test_loader):
-
-                f_dim = self.args.c_out
-                _, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method, f_dim=f_dim, seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
-
+            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(test_loader):
                 batch_x_mark = batch_x_mark.float().to(self.device)
-                inp = inp.float().to(self.device)
-                mask = mask.to(self.device)
+                mask = mask.int().to(self.device)
 
-                # encoder - decoder
-                if self.args.output_attention:
-                    output = self.model(inp, batch_x_mark, None, None, None, mask=mask)[0]
+                if self.args.input_inter:
+                    inp_inter = inp_inter.float().to(self.device)
+                    output = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
                 else:
+                    inp = inp.float().to(self.device)
                     output = self.model(inp, batch_x_mark, None, None, None, mask=mask)
 
                 if self.args.accelerate:
@@ -361,10 +349,12 @@ class Exp_Imputation(Exp_Basic):
                     output = output[-1][:, :self.args.seq_len, -self.f_dim:]
                 else:
                     output = output[:, :self.args.seq_len, -self.f_dim:]
-                true = batch_x[:, :self.args.seq_len, -self.f_dim:]
+
+                true = x_ori[:, :self.args.seq_len, -self.f_dim:]
 
                 imputation = output.detach().cpu().numpy()
                 mask = mask.detach().cpu().numpy()
+
                 true = true.detach().cpu().numpy()
                 imputation = mask * true + (1 - mask) * imputation
 
