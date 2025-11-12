@@ -121,9 +121,9 @@ if __name__ == '__main__':
 
             args.model_id = '1'
             args.model = model
-            # 1 MSE Ture fix  2 MAE Ture fix  3 MAE False fix  4 MAE False  adaptive
+            # 1 MSE True fix  2 MAE True fix  3 MAE False fix  4 MAE False  adaptive
             args.loss = 'MSE'
-            args.output_ori = Ture
+            args.output_ori = True
             args.loss_method = "fix"  # missing  fix  adaptive
 
             args.task_name = 'imputation'
