@@ -92,31 +92,27 @@ if __name__ == '__main__':
 
             if args.mask_method == 'rdo':
                 if mask_rate == 0.1:
-                    args.fix_seed = 9974213
-                elif mask_rate == 0.2:
-                    args.fix_seed = 199714213
-                elif mask_rate == 0.3:
-                    args.fix_seed = 199742136
-                elif mask_rate == 0.4:
-                    args.fix_seed = 426
-                elif mask_rate == 0.5:
                     args.fix_seed = 19974213
+                elif mask_rate == 0.2 or mask_rate == 0.4 or mask_rate == 0.5:
+                    args.fix_seed = 42
+                elif mask_rate == 0.3:
+                    args.fix_seed = 421
             if args.mask_method == 'mcar':
-                if mask_rate == 0.1 or mask_rate == 0.5:
+                if mask_rate == 0.1:
                     args.fix_seed = 199714213
                 elif mask_rate == 0.2:
                     args.fix_seed = 974213
-                elif mask_rate == 0.3:
-                    args.fix_seed = 421
-                elif mask_rate == 0.4:
-                    args.fix_seed = 9974213
-            if args.mask_method == 'mar':   # obs_rate = 1.0
-                if mask_rate == 0.1:
-                    args.fix_seed = 421
-                elif mask_rate == 0.2 or mask_rate == 0.4:
-                    args.fix_seed = 9974213
                 elif mask_rate == 0.3 or mask_rate == 0.5:
-                    args.fix_seed = 974213
+                    args.fix_seed = 19974213
+                elif mask_rate == 0.4:
+                    args.fix_seed = 421
+            if args.mask_method == 'mar':
+                if mask_rate == 0.1:
+                    args.fix_seed = 19974213
+                elif mask_rate == 0.2:
+                    args.fix_seed = 9974213
+                elif mask_rate == 0.3 or mask_rate == 0.4 or mask_rate == 0.5:
+                    args.fix_seed = 421
 
             random.seed(args.fix_seed)
             torch.manual_seed(args.fix_seed)
@@ -132,7 +128,7 @@ if __name__ == '__main__':
 
             args.task_name = 'imputation'
             args.mask_target_only = False
-            args.input_inter = True
+            args.input_inter = False
 
             args.pred_len = 0
             args.label_len = 0

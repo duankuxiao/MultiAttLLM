@@ -33,7 +33,9 @@ def generate_mar_mask(
       - 目标列 = 最后 f_dim 列 ∪ 中间段里按 obs_rate_mid 选出的列。
       - 永久观测列 = 手动指定的 always_obs 列 ∪ 中间段里未被选中的列。
     """
-    assert X.ndim == 3, "X 必须是 [B,T,D]"
+    assert X.ndim == 3 or X.ndim == 2, "X 必须是 [B,T,D]"
+    if X.ndim == 2:
+        X = X.unsqueeze(dim=0)
     device = X.device
     B, T, D = X.shape
     assert 1 <= f_dim <= D, "f_dim ∈ [1, D]"
@@ -173,7 +175,9 @@ def generate_mcar_mask(
       - 若对“全部特征”造缺：可为标量，或长度 D 的 1D 张量/列表（逐列缺失率）
       - 若仅对“最后 f_dim 列”造缺：可为标量，或长度 f_dim 的 1D 张量/列表
     """
-    assert X.ndim == 3, "X 必须是 [batch, seq, feature]"
+    assert X.ndim == 3 or X.ndim == 2, "X 必须是 [batch, seq, feature]或者[seq, feature]"
+    if X.ndim == 2:
+        X = X.unsqueeze(dim=0)
     device = X.device
     B, T, D = X.shape
     N = B * T
@@ -265,7 +269,9 @@ def generate_rdo_mask(
       - 对被选列的**整体单元格缺失率** ≈ row_drop_rate；
         对全矩阵的整体缺失率 ≈ (len(selected_cols)/D) * row_drop_rate。
     """
-    assert X.ndim == 3, "X 必须是 [batch, seq, feature]"
+    assert X.ndim == 3 or X.ndim == 2, "X 必须是 [batch, seq, feature]或者[seq, feature]"
+    if X.ndim == 2:
+        X = X.unsqueeze(dim=0)
     assert 0 < row_drop_rate < 1, "row_drop_rate 应在 (0,1)"
     device = X.device
     B, T, D = X.shape

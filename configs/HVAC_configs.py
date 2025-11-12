@@ -21,18 +21,16 @@ args.feature_cols = ['Temperature', 'Dewpoint','Dry_Bulb_Temperature', 'Wet_Bulb
 
 args.target = ['Total_Power','Total_Chiller_Power','System_Energy_Efficiency','Total_Cooling_Capacity']
 args.num_train = 35136  # 2023/03/08 - 2024/03/07
-args.num_test = 15840  # # 2024/03/08
+args.num_test = 15840  # 2024/03/08 - 2024/08/19
 args.seq_len = 48
-args.pred_len = 48
-args.label_len = args.seq_len
-
+args.pred_len = 0
+args.label_len = 32
 
 args.c_out = len(args.target)
-args.forecast_dim = 1
+args.forecast_dim = 2
 args.source_data_path = args.data_path
 args.enc_in = len(args.feature_cols)
 args.dec_in = len(args.feature_cols)
 
 args.scale = True
 args.val = False
-

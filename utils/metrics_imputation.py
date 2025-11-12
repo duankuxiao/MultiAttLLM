@@ -404,6 +404,59 @@ def results_evaluation_imputation(y_test_seq, y_pred_seq, mask):
     return [mse, rmse, mae, mape, mre]
 
 
+def interpolate_time_series(data):
+    """
+    对 shape 为 [B, T, D] 的时间序列数据沿时间维插值，自动支持 numpy 或 torch 输入。
+    插值方向为 axis=1（时间轴）
+
+    参数:
+        data: np.ndarray or torch.Tensor (with possible NaNs)
+
+    返回:
+        同类型、同 shape 的插值后结果
+    """
+    is_torch = isinstance(data, torch.Tensor)
+
+    # 如果是 torch.Tensor，使用 torch.interp
+    if is_torch:
+        if not hasattr(torch, 'interp'):
+            raise RuntimeError("torch.interp 需要 PyTorch >= 2.1")
+
+        device = data.device
+        B, T, D = data.shape
+        result = data.clone()
+
+        for b in range(B):
+            for d in range(D):
+                series = result[b, :, d]
+                isnan = torch.isnan(series)
+                if isnan.all():
+                    continue  # 全为 NaN 跳过
+                if isnan.any():
+                    idx = torch.arange(T, device=device)
+                    known_x = idx[~isnan]
+                    known_y = series[~isnan]
+                    interp = torch.interp(idx.float(), known_x.float(), known_y)
+                    result[b, :, d] = interp
+        return result
+
+    # 否则是 numpy.ndarray，使用 pandas 插值
+    elif isinstance(data, np.ndarray):
+        B, T, D = data.shape
+        result = np.empty_like(data)
+
+        for b in range(B):
+            for d in range(D):
+                series = data[b, :, d]
+                series_interp = pd.Series(series).interpolate(
+                    method='linear', limit_direction='both'
+                ).to_numpy()
+                result[b, :, d] = series_interp
+        return result
+
+    else:
+        raise TypeError("Only torch.Tensor or numpy.ndarray are supported.")
+
 def interpolate_nan_matrix(matrix, method='linear', axis=0, order=None):
     """
     对带有 NaN 值的矩阵进行插值，返回插值后的完整矩阵。

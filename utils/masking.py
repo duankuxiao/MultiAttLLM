@@ -830,7 +830,7 @@ def block_missing(
     return corrupted_X
 
 
-def mask_custom(X_ori, mask_rate=0.1,method='mcar',f_dim=4,cycle=20,pos=10,scale=3,seq_len=5,block_width=3, block_len=3,seed=4213,targets_only=False):
+def mask_custom(X_ori, mask_rate=0.1,method='mcar',f_dim=4,seed=4213,always_obs=4,targets_only=False):
     # grind the dataset with MCAR pattern, 10% missing probability, and using 0 to fill missing values
     if method == 'mcar':
         # X_with_mask_data = mcar(X_ori, p=mask_rate)  每个特征量随机在不同的时间缺失
@@ -838,22 +838,11 @@ def mask_custom(X_ori, mask_rate=0.1,method='mcar',f_dim=4,cycle=20,pos=10,scale
     elif method == 'mar':
         # grind the dataset with MAR pattern  部分特征量随机在不同的时间缺失
         # X_with_mask_data = mar_logistic(X_ori[:, 0, :], obs_rate=mask_rate, missing_rate=mask_rate)
-        X_with_mask_data = generate_mar_mask(X_ori,obs_rate=1.0,missing_rate=mask_rate,f_dim=f_dim,seed=seed)
+        X_with_mask_data = generate_mar_mask(X_ori,obs_rate=1.0,missing_rate=mask_rate,f_dim=f_dim,seed=seed,always_obs=always_obs)
     elif method == 'rdo':
         # grind the dataset with randomly drop observations pattern   每个特征量随机在同一时间缺失
         # X_with_mask_data = rdo(X_ori, p=mask_rate)
         X_with_mask_data = generate_rdo_mask(X_ori, row_drop_rate=mask_rate, f_dim=f_dim, seed=seed, tail_targets_only=targets_only)
-
-    elif method == 'mnar':
-        # grind the dataset with MNAR pattern
-        X_with_mask_data = mnar_x(X_ori, offset=mask_rate)
-        X_with_mnar_t_data = mnar_t(X_ori, cycle=cycle, pos=pos, scale=scale)
-    elif method == 'seq':
-        # grind the dataset with Sequence-Missing pattern
-        X_with_mask_data = seq_missing(X_ori, p=mask_rate, seq_len=seq_len)
-    elif method == 'block_missing':
-        # grind the dataset with Block-Missing pattern
-        X_with_mask_data = block_missing(X_ori, factor=mask_rate, block_width=block_width, block_len=block_len)
     else:
         raise ValueError('method must be mcar or mar or rdo or seq or block_missing')
     mask = (np.isnan(X_with_mask_data) ^ np.isnan(X_ori)) ^ 1
