@@ -104,13 +104,13 @@ if __name__ == '__main__':
             torch.manual_seed(args.fix_seed)
             np.random.seed(args.fix_seed)
             args.mask_rate = mask_rate
-
-            args.model_id = '1'
             args.model = model
+
             # 1 MSE True fix  2 MAE True fix  3 MAE False fix  4 MAE False  adaptive
+            args.model_id = '1'
             args.loss = 'MSE'
             args.output_ori = True
-            args.loss_method = "fix"  # missing  fix  adaptive
+            args.loss_method = "fix"
 
             args.task_name = 'imputation'
             args.mask_target_only = False
