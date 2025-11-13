@@ -68,7 +68,7 @@ class TemporalEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='fixed', freq='h'):
         super(TemporalEmbedding, self).__init__()
 
-        minute_size = 4
+        minute_size = 12
         hour_size = 24
         weekday_size = 7
         day_size = 32
@@ -98,7 +98,7 @@ class TimeFeatureEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='timeF', freq='h'):
         super(TimeFeatureEmbedding, self).__init__()
 
-        freq_map = {'h': 4, 't': 5, 's': 6,
+        freq_map = {'h': 4, 't': 5, 's': 6, '15min': 5,
                     'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3}
         d_inp = freq_map[freq]
         self.embed = nn.Linear(d_inp, d_model, bias=False)
@@ -141,6 +141,7 @@ class DataEmbedding_inverted(nn.Module):
             x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1))
         # x: [Batch Variate d_model]
         return self.dropout(x)
+
 
 class DataEmbedding_wo_pos(nn.Module):
     def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
@@ -189,14 +190,14 @@ class PatchEmbedding(nn.Module):
         # Residual dropout
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x):  # x [B, N, T]
         # do patching
         n_vars = x.shape[1]
-        x = self.padding_patch_layer(x)
-        x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)
-        x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
+        x = self.padding_patch_layer(x)  # x [B, N, T+stride]
+        x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)  # x [B, N, patch_num, patch_len]
+        x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))  # x [B * N, patch_num, patch_len]
         # Input encoding
-        x = self.value_embedding(x)
+        x = self.value_embedding(x)  # x [B * N, patch_num, d_model]
         return self.dropout(x), n_vars
 
 
