@@ -1,9 +1,6 @@
 from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4
 from torch.utils.data import DataLoader
 from data_provider.data_loader_cumstom import Dataset_cumstom, Dataset_classification
-from models.AutoTimes import Dataset_Custom as Dataset_Custom_AutoTimes
-from data_provider.data_loader_LLM import Dataset_cumstom_llm
-from data_provider.uea import collate_fn
 
 data_dict = {
     'ETTh1': Dataset_ETT_hour,
@@ -18,14 +15,7 @@ data_dict = {
 
 
 def data_provider(args, flag):
-    if args.data in data_dict:
-        Data = data_dict[args.data]
-    else:
-        Data = Dataset_cumstom
-
-    if args.model == 'TimeLLM':
-        Data = Dataset_cumstom  # Dataset_solar_radiation_llm
-
+    Data = Dataset_cumstom
     timeenc = 0 if args.embed != 'timeF' else 1
     percent = args.percent
     drop_last = True

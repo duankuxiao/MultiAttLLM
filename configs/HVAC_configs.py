@@ -25,6 +25,7 @@ args.num_test = 15840  # 2024/03/08 - 2024/08/19
 args.seq_len = 48
 args.pred_len = 0
 args.label_len = 32
+args.freq = '15min'
 
 args.c_out = len(args.target)
 args.forecast_dim = 2
