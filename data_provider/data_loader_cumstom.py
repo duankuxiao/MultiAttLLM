@@ -61,13 +61,13 @@ class Dataset_cumstom(Dataset):
             s_begin = index % self.tot_len
             # s_begin = (index // 24) * 24
             s_end = s_begin + self.seq_len
-            seq_x = self.data_x[s_begin:s_end, :]
-            seq_x_mark = self.data_stamp[s_begin:s_end]
-            seq_x_withmask = self.data_withmask[s_begin:s_end, :]
-            seq_x_ori = self.data_ori[s_begin:s_end, :]
+            seq = self.data[s_begin:s_end, :]
+            seq_mark = self.data_stamp[s_begin:s_end]
+            seq_withmask = self.data_withmask[s_begin:s_end, :]
+            seq_ori = self.data_ori[s_begin:s_end, :]
             mask = self.mask[s_begin:s_end, :]
             seq_inter = self.data_inter[s_begin:s_end, :]
-            return seq_x, seq_inter, seq_x_mark, mask, seq_x_ori
+            return seq, seq_inter, seq_mark, mask, seq_ori
         else:
             s_begin = index % self.tot_len
             # s_begin = (index // 24) * 24
@@ -179,10 +179,16 @@ class Dataset_cumstom(Dataset):
             data_stamp = data_stamp.transpose(1, 0)
         if self.task_name == 'imputation':
             data_ori = data
-            self.data_withmask, self.mask, data = mask_custom(torch.Tensor(data).unsqueeze(dim=0), mask_rate=self.configs.mask_rate, method=self.configs.mask_method, f_dim=self.c_out, seed=self.configs.fix_seed,targets_only=self.configs.mask_target_only)
+            data_withmask, mask, data = mask_custom(torch.Tensor(data), mask_rate=self.configs.mask_rate, method=self.configs.mask_method, f_dim=self.c_out, seed=self.configs.fix_seed,targets_only=self.configs.mask_target_only)
+            data_withmask, mask, data = data_withmask.squeeze(dim=0).numpy(), mask.squeeze(dim=0).numpy(), data.squeeze(dim=0).numpy()
+            data_inter = interpolate_nan_matrix(data_withmask, method='polynomial', axis=0, order=2)
+
             self.data_ori = data_ori[border1:border2, :len(self.feature_cols)]
-            self.data_withmask, self.mask, data = self.data_withmask.squeeze(dim=0).numpy(), self.mask.squeeze(dim=0).numpy(), data.squeeze(dim=0).numpy()
-            self.data_inter = interpolate_nan_matrix(self.data_withmask)
+            self.data = data[border1:border2, :]
+            self.data_withmask = data_withmask[border1:border2, :]
+            self.mask = mask[border1:border2, :]
+            self.data_inter = data_inter[border1:border2, :]
+
         if self.features == 'S':
             self.data_x = data[border1:border2, -1:]
             self.data_y = data[border1:border2, -1:]
@@ -225,7 +231,6 @@ class Dataset_classification(Dataset):
         self.feature_dim = self.data.shape[2]
         self.class_names = np.unique(self.labels)
 
-
     def __getitem__(self, index):
         mark = np.zeros_like(self.data)
         return self.data[index,:,:],self.labels[index], mark[index,:,:]
@@ -244,26 +249,4 @@ class Dataset_classification(Dataset):
 
 
 if __name__ == '__main__':
-    from utils.tools import heatmap
-    # folder = r'D:\Time-LLM-main\dataset\pv'
-    # data_file = 'PV_hour.csv'
-    # data = pd.read_csv(os.path.join(folder, data_file),index_col=0)
-    # print(data.columns)
-    # # data = data[['Temperature', 'Relative_humidity',  'Wind_speed', 'Global_horizontal_irradiance', 'System_price', 'Sell_volume', 'Buy_volume', 'Total_volume',
-    # #                      'Sell_volume_block_orders', 'Sell_volume_contracted_block_orders', 'Buy_volume_block_orders', 'Buy_volume_contracted_block_orders',  'Price']]
-    # data = data[['Temperature','Relative_humidity','Precipitation','Dew_point','Vapor_pressure','Wind_speed','Sunshine_duration','Snowfall','Global_horizontal_irradiance']]
-    # data_path = 'pv'
-    # heatmap(data,data_path)
-
-    import numpy as np, os
-
-    npz = np.load(r"D:\Time-LLM-main\dataset\dataset_splits.npz")
-    train_data = npz["train_data"]
-    train_labels = npz["train_labels"]
-    test_data = npz["test_data"]
-    test_labels = npz["test_labels"]
-    print(train_data.shape)
-    print(train_data)
-    print(train_labels.shape)
-    print(train_labels)
-    print(len(np.unique(train_labels)))
+    pass
