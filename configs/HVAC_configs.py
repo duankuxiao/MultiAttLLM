@@ -1,6 +1,6 @@
 from configs.common_configs import args
 
-args.model_comment = 'HVAC'  # 能源供应
+args.model_comment = 'HVAC'
 args.features = 'M'
 
 '''
