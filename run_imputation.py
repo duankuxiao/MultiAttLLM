@@ -116,8 +116,6 @@ if __name__ == '__main__':
             args.mask_target_only = False
             args.input_inter = False
 
-            args.pred_len = 0
-            args.label_len = 0
             args = model_hyparameter_setup(args)
             args.is_training = 1
 
@@ -132,8 +130,8 @@ if __name__ == '__main__':
             all_results.append(metrics_df.iloc[-1:])
 
             final_metrics_df_imputation = pd.concat(all_results_imputation, axis=0, ignore_index=False)
-            final_metrics_df_imputation.to_csv('./results/{}_all_models_comparison_imputation.csv'.format(args.model_id))
+            final_metrics_df_imputation.to_csv('./results/{}_{}_benchmark_imputation_metrics.csv'.format(args.model_id, args.mask_method))
 
             final_metrics_df = pd.concat(all_results, axis=0, ignore_index=False)
-            final_metrics_df.to_csv('./results/{}_all_models_comparison.csv'.format(args.model_id))
+            final_metrics_df.to_csv('./results/{}_{}_benchmark_metrics.csv'.format(args.model_id, args.mask_method))
 
