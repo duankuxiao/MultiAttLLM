@@ -112,19 +112,19 @@ class Exp_Imputation(Exp_Basic):
         total_loss = []
         self.model.eval()
         with torch.no_grad():
-            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(vali_loader):
+            for i, (inp, inp_inter, mark, mask, x_ori) in enumerate(vali_loader):
                 # inp_withmask, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method,f_dim=f_dim,seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
 
-                batch_x_mark = batch_x_mark.float().to(self.device)
+                mark = mark.float().to(self.device)
                 mask = mask.int().to(self.device)
 
                 # encoder - decoder
                 if self.args.input_inter:
                     inp_inter = inp_inter.float().to(self.device)
-                    outputs = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
+                    outputs = self.model(inp_inter, mark, None, None, None, mask=mask)
                 else:
                     inp = inp.float().to(self.device)
-                    outputs = self.model(inp, batch_x_mark, None, None, None,mask=mask)
+                    outputs = self.model(inp, mark, None, None, None,mask=mask)
 
                 if isinstance(outputs, tuple):
                     outputs = tuple(
@@ -183,23 +183,23 @@ class Exp_Imputation(Exp_Basic):
 
             self.model.train()
             epoch_time = time.time()
-            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(train_loader):
+            for i, (inp, inp_inter, mark, mask, x_ori) in enumerate(train_loader):
                 iter_count += 1
                 model_optim.zero_grad()
-                batch_x_mark = batch_x_mark.float()
+                mark = mark.float()
 
                 # imputation input
                 x_ori = x_ori.float().to(self.device)
-                batch_x_mark = batch_x_mark.to(self.device)
+                mark = mark.to(self.device)
                 mask = mask.int().to(self.device)
 
                 # encoder - decoder
                 if self.args.input_inter:
                     inp_inter = inp_inter.float().to(self.device)
-                    outputs = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
+                    outputs = self.model(inp_inter, mark, None, None, None, mask=mask)
                 else:
                     inp = inp.float().to(self.device)
-                    outputs = self.model(inp, batch_x_mark, None, None, None, mask=mask)
+                    outputs = self.model(inp, mark, None, None, None, mask=mask)
 
                 if isinstance(outputs, tuple):
                     outputs = tuple(
@@ -329,16 +329,16 @@ class Exp_Imputation(Exp_Basic):
         self.model.eval()
 
         with torch.no_grad():
-            for i, (inp, inp_inter, batch_x_mark, mask, x_ori) in enumerate(test_loader):
-                batch_x_mark = batch_x_mark.float().to(self.device)
+            for i, (inp, inp_inter, mark, mask, x_ori) in enumerate(test_loader):
+                mark = mark.float().to(self.device)
                 mask = mask.int().to(self.device)
 
                 if self.args.input_inter:
                     inp_inter = inp_inter.float().to(self.device)
-                    output = self.model(inp_inter, batch_x_mark, None, None, None, mask=mask)
+                    output = self.model(inp_inter, mark, None, None, None, mask=mask)
                 else:
                     inp = inp.float().to(self.device)
-                    output = self.model(inp, batch_x_mark, None, None, None, mask=mask)
+                    output = self.model(inp, mark, None, None, None, mask=mask)
 
                 if self.args.accelerate:
                     self.accelerator.wait_for_everyone()
