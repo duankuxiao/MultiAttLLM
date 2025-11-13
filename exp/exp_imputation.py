@@ -3,8 +3,7 @@ from matplotlib import pyplot as plt
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
-from utils.tools import EarlyStopping, adjust_learning_rate, visual
-from utils.metrics import metric
+from utils.tools import EarlyStopping, adjust_learning_rate
 import torch
 import torch.nn as nn
 from torch import optim
@@ -12,15 +11,14 @@ import os
 import time
 import warnings
 import numpy as np
-from utils.dtw_metric import dtw, accelerated_dtw
-from utils.augmentation import run_augmentation, run_augmentation_single
+from utils.dtw_metric import accelerated_dtw
 from utils.tools import results_evaluation, save_config
-from utils.masking import mask_custom
 from utils.metrics_imputation import calc_mae, calc_mse, results_evaluation_imputation, interpolate_nan_matrix, interpolate_time_series
 
 from torch.optim import lr_scheduler
 
 warnings.filterwarnings('ignore')
+
 
 class Exp_Imputation(Exp_Basic):
     def __init__(self, args):
@@ -32,10 +30,8 @@ class Exp_Imputation(Exp_Basic):
             self.log_sigma_missing_2 = nn.Parameter(torch.zeros(1))
             self.log_sigma_ori = nn.Parameter(torch.zeros(1))
 
-
     def _build_model(self):
         model = self.model_dict[self.args.model].Model(self.args).float()
-
         if self.args.use_multi_gpu and self.args.use_gpu:
             model = nn.DataParallel(model, device_ids=self.args.device_ids)
         return model
@@ -113,12 +109,9 @@ class Exp_Imputation(Exp_Basic):
         self.model.eval()
         with torch.no_grad():
             for i, (inp, inp_inter, mark, mask, x_ori) in enumerate(vali_loader):
-                # inp_withmask, mask, inp = mask_custom(batch_x, mask_rate=self.args.mask_rate, method=self.args.mask_method,f_dim=f_dim,seed=self.args.fix_seed,targets_only=self.args.mask_target_only)
-
                 mark = mark.float().to(self.device)
                 mask = mask.int().to(self.device)
 
-                # encoder - decoder
                 if self.args.input_inter:
                     inp_inter = inp_inter.float().to(self.device)
                     outputs = self.model(inp_inter, mark, None, None, None, mask=mask)
@@ -373,27 +366,13 @@ class Exp_Imputation(Exp_Basic):
 
         print('test shape:', imputations.shape, imputation_trues.shape)
 
-        # dtw calculation
-        if self.args.use_dtw:
-            dtw_list = []
-            manhattan_distance = lambda x, y: np.abs(x - y)
-            for i in range(imputations.shape[0]):
-                x = imputations[i].reshape(-1, 1)
-                y = imputation_trues[i].reshape(-1, 1)
-                if i % 100 == 0:
-                    print("calculating dtw iter:", i)
-                d, _, _, _ = accelerated_dtw(x, y, dist=manhattan_distance)
-                dtw_list.append(d)
-            dtw = np.array(dtw_list).mean()
-        else:
-            dtw = -999
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
         [mse, rmse,nrmse, mae,mape,rae, r2,corr] = results_evaluation(imputation_trues.flatten(), imputations.flatten())
-        print('mae:{}, r2:{}, dtw:{}'.format(mae, r2, dtw))
+        print('mae:{}, r2:{}'.format(mae, r2))
         f = open(os.path.join('./results', "result_imputation.txt"), 'a')
         f.write(setting + "  \n")
-        f.write('mae:{}, r2:{}, dtw:{}'.format(mae, r2, dtw))
+        f.write('mae:{}, r2:{}'.format(mae, r2))
         f.write('\n')
         f.write('\n')
         f.close()
@@ -433,8 +412,6 @@ class Exp_Imputation(Exp_Basic):
             # self._show_plot(idx,y_withnan=withnan_i,y_true=true_i,y_imputation=imputation_i,y_inter=inter_i,path=path)
             imputation_i = np.where(true_i <= 0.0001, 0, imputation_i)
             inter_i = np.where(true_i <= 0.0001, 0, inter_i)
-
-            # true_i = np.where(true_i <= 0.0001, 0, true_i)
 
             # Metrics for full sequence
             mse, rmse, nrmse, mae, mape, rae, r2, corr = results_evaluation(true_i, imputation_i)
