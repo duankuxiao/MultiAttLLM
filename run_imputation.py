@@ -9,24 +9,10 @@ os.environ['CURL_CA_BUNDLE'] = ''
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
 
 def get_setting(args, ii):
-    setting = '{}_{}_{}_ft{}_sl{}_ll{}_pl{}_sd{}_td{}_dm{}_df{}_nh{}_el{}_dl{}_ma{}_factor{}_dropout{}_loss{}_{}_{}{}'.format(
-        args.model_id,
-        args.model,
-        args.data,
-        args.features,
-        args.seq_len,
-        args.label_len,
-        args.pred_len,
-        args.enc_in,
-        args.c_out,
-        args.d_model,
-        args.d_ff,
-        args.n_heads,
-        args.e_layers,
-        args.d_layers,
-        args.moving_avg,
-        args.factor,
-        args.dropout, args.loss,args.loss_method,args.mask_method,args.mask_rate)
+    setting = '{}_{}_{}_ft{}_sl{}_ll{}_sd{}_td{}_dm{}_df{}_nh{}_el{}_dl{}_factor{}_loss{}_{}_{}{}'.format(
+        args.model_id, args.model, args.data, args.features, args.seq_len, args.label_len,
+        args.enc_in, args.c_out, args.d_model, args.d_ff, args.n_heads, args.e_layers, args.d_layers, args.factor,
+        args.loss,args.loss_method,args.mask_method,args.mask_rate)
 
     if 'LLM' in args.model:
         setting += '_{}_llmd{}_llmf{}_tk{}'.format(args.llm_model, args.llm_dim, args.llm_layers, args.top_k)
@@ -45,6 +31,8 @@ def get_setting(args, ii):
         setting += '_target'
     if args.output_ori:
         setting += '_ori'
+    if args.input_inter:
+        setting += '_int'
     return setting
 
 def main(args):
@@ -74,8 +62,6 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # from configs.operational_configs import args as default_args
-    # from configs.electricity_configs import args as default_args
     from configs.HVAC_configs import args as default_args
     from copy import deepcopy
     from hyparam_imputation import model_hyparameter_setup
