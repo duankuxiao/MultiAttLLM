@@ -170,14 +170,14 @@ class LLMBlock(nn.Module):
                     local_files_only=False
                 )
         elif configs.llm_model == 'GPT2':
-            self.gpt2_config = GPT2Config.from_pretrained(r'D:\LLM\gpt2')
+            self.gpt2_config = GPT2Config.from_pretrained(configs.llm_path)
 
             self.gpt2_config.num_hidden_layers = configs.llm_layers
             self.gpt2_config.output_attentions = True
             self.gpt2_config.output_hidden_states = True
             try:
                 self.llm_model = GPT2Model.from_pretrained(
-                    r'D:\LLM\gpt2',
+                    configs.llm_path,
                     trust_remote_code=True,
                     local_files_only=True,
                     config=self.gpt2_config,
@@ -193,7 +193,7 @@ class LLMBlock(nn.Module):
 
             try:
                 self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    r'D:\LLM\gpt2',
+                    configs.llm_path,
                     trust_remote_code=True,
                     local_files_only=True
                 )
