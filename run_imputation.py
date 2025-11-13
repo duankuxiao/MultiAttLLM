@@ -74,7 +74,7 @@ if __name__ == '__main__':
         for mask_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
             args = deepcopy(default_args)
 
-            args.mask_method = 'mar'
+            args.mask_method = 'mcar'
 
             if args.mask_method == 'rdo':
                 if mask_rate == 0.1:
