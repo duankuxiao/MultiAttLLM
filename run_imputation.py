@@ -68,8 +68,8 @@ if __name__ == '__main__':
 
     all_results_imputation = []
     all_results = []
-    # for model in ['RNN', 'DLinear', 'Transformer', 'Informer', 'iTransformer', 'PatchTST', 'TimesNet', 'LLMformer']:
-    for model in ['LLMformer']:
+    for model in ['RNN', 'DLinear', 'Transformer', 'Informer', 'iTransformer', 'PatchTST', 'TimesNet', 'LLMformer']:
+    # for model in ['LLMformer']:
 
         for mask_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
             args = deepcopy(default_args)
@@ -111,6 +111,7 @@ if __name__ == '__main__':
             args.loss = 'MSE'
             args.output_ori = True
             args.loss_method = "fix"
+
             args.llm_path = r'D:\LLM\gpt2'
 
             args.task_name = 'imputation'

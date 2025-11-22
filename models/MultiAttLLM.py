@@ -226,10 +226,9 @@ class LLMBlock(nn.Module):
         self.output_projection.to(device=self.device)
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec,)
-            return dec_out[:, :, :]
-        return None
+        dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec,)
+        return dec_out[:, :, :]
+
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         x_enc = self.normalize_layers(x_enc, 'norm')
@@ -323,32 +322,31 @@ class Model(nn.Module):
         self.LLM_encoder = LLMBlock(configs)
 
         # Decoder
-        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            self.dec_embedding = DataEmbedding(configs.c_out, configs.d_model, configs.embed, configs.freq, configs.dropout)
+        self.dec_embedding = DataEmbedding(configs.c_out, configs.d_model, configs.embed, configs.freq, configs.dropout)
 
-            # Embedding
-            self.selfattention_layer = Decoder(
-                [
-                    DecoderLayer(
-                        AttentionLayer(
-                            FullAttention(True, configs.factor, attention_dropout=configs.dropout,
-                                          output_attention=False),
-                            configs.d_model, configs.n_heads),
-                        AttentionLayer(
-                            FullAttention(False, configs.factor, attention_dropout=configs.dropout,
-                                          output_attention=False),
-                            configs.d_model, configs.n_heads),
-                        configs.d_model,
-                        4 * configs.d_model,
-                        dropout=configs.dropout,
-                        activation=configs.activation,
-                    )
-                    for l in range(configs.d_layers)
-                ],
-                norm_layer=torch.nn.LayerNorm(configs.d_model),
-            )
-            self.out_projection = nn.Linear(configs.d_model, configs.c_out)
-            self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len + configs.label_len)
+        # Embedding
+        self.selfattention_layer = Decoder(
+            [
+                DecoderLayer(
+                    AttentionLayer(
+                        FullAttention(True, configs.factor, attention_dropout=configs.dropout,
+                                      output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    AttentionLayer(
+                        FullAttention(False, configs.factor, attention_dropout=configs.dropout,
+                                      output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    configs.d_model,
+                    4 * configs.d_model,
+                    dropout=configs.dropout,
+                    activation=configs.activation,
+                )
+                for l in range(configs.d_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(configs.d_model),
+        )
+        self.out_projection = nn.Linear(configs.d_model, configs.c_out)
+        self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len + configs.label_len)
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         x_enc_other = x_enc[:,:,:-self.c_out]
@@ -366,7 +364,5 @@ class Model(nn.Module):
 
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
-            return dec_out[:, -self.pred_len:, :]  # [B, L, D]
-        return None
+        dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
+        return dec_out[:, -self.pred_len:, :]  # [B, L, D]
