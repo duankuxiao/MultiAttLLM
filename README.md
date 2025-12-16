@@ -12,13 +12,14 @@ MultiAttLLM is a novel architecture that combines Large Language Models (LLMs) w
 - **Cross-Attention Reprogramming**: Aligns time series patches with LLM token embeddings
 - **Multi-variate Forecasting**: Handles multiple target variables with covariate features
 - **Long-horizon Prediction**: Designed for 7-day (168-hour) forecasting horizons
-
+![Framework of MultiAttLLM](figures/MultiAttLLM/workflow.png)
 ## Architecture
 
 ```
-Input → Normalization → [LLM Encoder (target) + Transformer Encoder (covariates)]
-      → Cross-Attention Fusion → Decoder → Output Projection → Predictions
+Input → Normalization → Cross Attention → [LLM Encoder (target) + Transformer Encoder (covariates)]
+      → self-Attention Fusion → Output Projection → Predictions
 ```
+![Framework of MultiAttLLM](figures/MultiAttLLM/MultiAttLLM.png)
 
 ## Requirements
 
@@ -57,8 +58,8 @@ Model-specific hyperparameters are in `hyparam_setup_forele.py`.
 
 The model is evaluated on electricity demand datasets from multiple regions:
 - Tokyo, Kyushu, Hokkaido, Tohoku (Japan)
-- Texas (USA)
-
+![Framework of MultiAttLLM](figures/MultiAttLLM/datasets.png)
+- 
 Data should be placed in `dataset/electricity/` directory.
 
 ## Citation
