@@ -82,6 +82,3 @@ If you use this code, please cite the relevant paper(s):
 }
 ```
 
-## License
-
-This project is licensed under the MIT License.
