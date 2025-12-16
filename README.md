@@ -4,11 +4,11 @@ This repository contains implementations for three research papers on Large Lang
 
 ## Papers and Branches
 
-| Branch | Paper | Task | Model |
-|--------|-------|------|-------|
-| [`paper/MultiAttLLM`](../../tree/paper/MultiAttLLM) | Multi-Attention LLM for Energy Demand Forecasting | Long-term Forecasting | MultiAttLLM |
-| [`paper/LLMformer`](../../tree/paper/LLMformer) | Hybrid LLM-Transformer for Probabilistic Forecasting | Probabilistic Imputation | LLMformer |
-| [`paper/ImputeLLM`](../../tree/paper/ImputeLLM) | LLM Enhanced Time Series Imputation | Missing Value Imputation | ImputeLLM |
+| Branch | Paper                                                            | Task | Model |
+|--------|------------------------------------------------------------------|------|-------|
+| [`paper/MultiAttLLM`](../../tree/paper/MultiAttLLM) | Multi-Attention LLM for Energy Demand and Generation Forecasting | Long-term Forecasting | MultiAttLLM |
+| [`paper/LLMformer`](../../tree/paper/LLMformer) | Hybrid LLM-Transformer for Probabilistic Forecasting             | Probabilistic Forecasting | LLMformer |
+| [`paper/ImputeLLM`](../../tree/paper/ImputeLLM) | LLM Enhanced Time Series Imputation                              | Missing Value Imputation | ImputeLLM |
 
 ## Quick Start
 
