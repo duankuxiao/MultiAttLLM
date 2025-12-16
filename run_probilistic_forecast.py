@@ -84,9 +84,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-    from setup_LLMformer import model_hyparameter_setup
+    from setup_LLMformer import model_hyperparameter_setup
     from configs.electricity_configs import args as default_args
-
     from copy import deepcopy
 
     all_results = []
@@ -109,7 +108,7 @@ if __name__ == '__main__':
                 args.model_id = 'test'
 
                 args.model = model
-                args = model_hyparameter_setup(args)
+                args = model_hyperparameter_setup(args)
                 _, res_metrics_df, loss_df = main(args)
                 res_metrics_df.insert(0, 'model', model)
 
