@@ -79,23 +79,21 @@ def main(args):
 
 
 if __name__ == '__main__':
-    from hyparam_setup_forele import model_hyparameter_setup
+    from setup_MultiAttLLM import model_hyperparameter_setup
     from configs.electricity_configs import args as default_args
     from copy import deepcopy
 
     all_results = []
 
-    # for model in ['RNN', 'DLinear', 'Informer', 'Autoformer', 'iTransformer', 'TimesNet', 'PatchTST', 'TimeLLM', 'TimeLLMformer']:
-    for model in ['MultiAttLLM']:
+    for model in ['RNN', 'DLinear', 'Informer', 'Autoformer', 'iTransformer', 'TimesNet', 'PatchTST', 'TimeLLM', 'TimeLLMformer']:
 
         args = deepcopy(default_args)
-
         args.model_id = 'test'
 
         args.model = model
         args.is_training = 1
 
-        args = model_hyparameter_setup(args)
+        args = model_hyperparameter_setup(args)
         _, res_metrics_df = main(args)
         res_metrics_df.insert(0, 'model', model)
         all_results.append(res_metrics_df)
