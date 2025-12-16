@@ -3,7 +3,7 @@ from utils.tools import load_content
 import torch
 
 
-def model_hyparameter_setup(args):
+def model_hyperparameter_setup(args):
     args.use_norm = True
     args.learning_rate = 0.0001
     args.d_model = 512
