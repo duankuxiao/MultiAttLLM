@@ -63,42 +63,17 @@ def main(args):
 
 if __name__ == '__main__':
     from configs.HVAC_configs import args as default_args
+    from setup_ImputeLLM import model_hyperparameter_setup
     from copy import deepcopy
-    from hyparam_imputation import model_hyparameter_setup
 
     all_results_imputation = []
     all_results = []
     for model in ['RNN', 'DLinear', 'Transformer', 'Informer', 'iTransformer', 'PatchTST', 'TimesNet', 'LLMformer']:
-    # for model in ['LLMformer']:
 
         for mask_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
             args = deepcopy(default_args)
 
             args.mask_method = 'mcar'
-
-            if args.mask_method == 'rdo':
-                if mask_rate == 0.1:
-                    args.fix_seed = 19974213
-                elif mask_rate == 0.2 or mask_rate == 0.4 or mask_rate == 0.5:
-                    args.fix_seed = 42
-                elif mask_rate == 0.3:
-                    args.fix_seed = 421
-            if args.mask_method == 'mcar':
-                if mask_rate == 0.1:
-                    args.fix_seed = 199714213
-                elif mask_rate == 0.2:
-                    args.fix_seed = 974213
-                elif mask_rate == 0.3 or mask_rate == 0.5:
-                    args.fix_seed = 19974213
-                elif mask_rate == 0.4:
-                    args.fix_seed = 421
-            if args.mask_method == 'mar':
-                if mask_rate == 0.1:
-                    args.fix_seed = 19974213
-                elif mask_rate == 0.2:
-                    args.fix_seed = 9974213
-                elif mask_rate == 0.3 or mask_rate == 0.4 or mask_rate == 0.5:
-                    args.fix_seed = 421
 
             random.seed(args.fix_seed)
             torch.manual_seed(args.fix_seed)
@@ -118,7 +93,7 @@ if __name__ == '__main__':
             args.mask_target_only = False
             args.input_inter = False
 
-            args = model_hyparameter_setup(args)
+            args = model_hyperparameter_setup(args)
             args.is_training = 1
 
             res_df, metrics_df, imputation_metrics_df = main(args)
