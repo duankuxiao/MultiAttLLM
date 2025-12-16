@@ -62,19 +62,23 @@ All models support multiple pre-trained LLMs:
 If you use this code, please cite the relevant paper(s):
 
 ```bibtex
-@article{multiattllm2025,
-  title={MultiAttLLM: Multi-Attention Large Language Model for Energy Demand and Generation Forecasting},
+@article{hu2025novel,
+  title={A novel attention-enhanced LLM approach for accurate power demand and generation forecasting},
+  author={Hu, Zehuan and Gao, Yuan and Sun, Luning and Mae, Masayuki},
+  journal={Renewable Energy},
+  pages={123465},
+  year={2025},
+  publisher={Elsevier}
+}
+
+@article{llmformer2025,
+  title={LLMformer: Hybrid LLM-Transformer Model for Probabilistic Time Series Forecasting},
   year={2025}
 }
 
-@article{llmformer2024,
-  title={LLMformer: Hybrid LLM-Transformer Model for Probabilistic Time Series Forecasting},
-  year={2024}
-}
-
-@article{imputellm2024,
+@article{imputellm2025,
   title={ImputeLLM: Large Language Model Enhanced Time Series Imputation},
-  year={2024}
+  year={2025}
 }
 ```
 
