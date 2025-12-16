@@ -9,8 +9,7 @@ def model_hyperparameter_setup(args):
     args.e_layers = 2
     args.d_layers = 1
     if args.model == 'MultiAttLLM':
-        args.learning_rate = 0.01  # 0.001 for imputation 0.0001 for forecast(0.01 for LLM model)  for electricity
-        # args.learning_rate = 0.001  # 0.001 for imputation 0.0001 for forecast(0.01 for LLM model)
+        args.learning_rate = 0.01
 
         args.patience = 6
         args.lradj = 'PEMS'
@@ -20,10 +19,6 @@ def model_hyperparameter_setup(args):
         args.e_layers = 1
         args.d_layers = 4
         args.llm_layers = 6
-
-        # args.d_model = 8
-        # args.d_ff = args.d_model * 2
-        # args.llm_layers = 6
 
     if 'RNN' in args.model:
         args.learning_rate = 0.001  # 0.0001 for forecast   0.001 for imputation
@@ -50,16 +45,10 @@ def model_hyperparameter_setup(args):
 
 
     if args.model == 'Autoformer':  # default
-        # args.lradj = 'PEMS'
         args.dropout = 0.05  # default
         args.learning_rate = 0.0011
         args.factor = 3
 
-        # args.e_layers = 4
-        # args.d_model = 256  # default
-        # args.d_ff = 1024  # default
-
-        # args.dropout = 0.1
         args.d_model = 512
         args.d_ff = 2048
         args.e_layers = 2
@@ -71,7 +60,6 @@ def model_hyperparameter_setup(args):
         args.d_model = 512
         args.d_ff = 512
         args.e_layers = 3
-
 
     if args.model == 'TimeLLM':  # default
         args.patience = 3
@@ -95,21 +83,10 @@ def model_hyperparameter_setup(args):
 
     if args.model == 'TimesNet':
         args.learning_rate = 0.0001  # 0.0001 for forecast   0.001 for imputation
-        # args.d_model = 32  # min{max[2**log(seq_dim),32],512} for forecast   min{max[2**log(seq_dim),64],128} for imputation
-        # args.d_ff = 128
+        args.d_model = 32  # min{max[2**log(seq_dim),32],512} for forecast   min{max[2**log(seq_dim),64],128} for imputation
+        args.d_ff = 128
         args.e_layers = 2
         args.top_k = 5  # 5 for forecast   3 for imputation, classification, anomaly detection
-
-        args.d_model = 32  # min{max[2**log(seq_dim),32],512} for forecast   min{max[2**log(seq_dim),64],128} for imputation
-        args.d_ff = 64
-
-    if args.model == 'SAITS':
-        args.e_layers = 2
-        args.d_model = 256
-        args.d_ff = 128
-        args.n_heads = 4
-        args.d_v = 64
-        args.d_k = 64
 
     if 'LLM' in args.model:
         args.content = load_content(args)
