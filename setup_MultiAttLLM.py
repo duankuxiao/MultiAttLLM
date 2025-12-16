@@ -3,7 +3,7 @@ from utils.tools import load_content
 import torch
 
 
-def model_hyparameter_setup(args):
+def model_hyperparameter_setup(args):
     args.d_model = 512
     args.d_ff = 2048
     args.e_layers = 2
