@@ -1,0 +1,9 @@
+from .TimeLLM import Model as TimeLLM
+from .TimesNet import Model as TimesNet
+from .DLinear import Model as DLinear
+from .Informer import Model as Informer
+from .Transformer import Model as Transformer
+from .iTransformer import Model as iTransformer
+from .RNN import Model as RNN
+from .PatchTST import Model as PatchTST
+from .MultiAttLLM import Model as MultiAttLLM
