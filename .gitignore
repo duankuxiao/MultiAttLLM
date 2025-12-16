@@ -45,3 +45,6 @@ figures/
 # OS files
 .DS_Store
 Thumbs.db
+
+!figures/
+!figures/**
