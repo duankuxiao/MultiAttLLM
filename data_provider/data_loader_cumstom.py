@@ -53,30 +53,18 @@ class Dataset_cumstom(Dataset):
             self.std_ = self.target_scaler.scale_
 
     def __getitem__(self, index):
-        if self.task_name == 'imputation':
-            s_begin = index % self.tot_len
-            # s_begin = (index // 24) * 24
-            s_end = s_begin + self.seq_len
-            seq = self.data[s_begin:s_end, :]
-            seq_mark = self.data_stamp[s_begin:s_end]
-            seq_withmask = self.data_withmask[s_begin:s_end, :]
-            seq_ori = self.data_ori[s_begin:s_end, :]
-            mask = self.mask[s_begin:s_end, :]
-            seq_inter = self.data_inter[s_begin:s_end, :]
-            return seq, seq_inter, seq_mark, mask, seq_ori
-        else:
-            s_begin = index % self.tot_len
-            # s_begin = (index // 24) * 24
-            s_end = s_begin + self.seq_len
-            r_begin = s_end - self.label_len
-            r_end = r_begin + self.label_len + self.pred_len
-            seq_x = self.data_x[s_begin:s_end, :]
-            seq_y = self.data_y[r_begin:r_end, :]
-            seq_x_mark = self.data_stamp[s_begin:s_end]
-            seq_y_mark = self.data_stamp[r_begin:r_end]
-            # x_forecast = self.data_forecast[r_begin:r_end, :self.forecast_dim]
-            x_forecast = self.data_forecast[r_begin:r_end, :self.forecast_dim]
-            return seq_x, seq_y, seq_x_mark, seq_y_mark, x_forecast
+        s_begin = index % self.tot_len
+        # s_begin = (index // 24) * 24
+        s_end = s_begin + self.seq_len
+        r_begin = s_end - self.label_len
+        r_end = r_begin + self.label_len + self.pred_len
+        seq_x = self.data_x[s_begin:s_end, :]
+        seq_y = self.data_y[r_begin:r_end, :]
+        seq_x_mark = self.data_stamp[s_begin:s_end]
+        seq_y_mark = self.data_stamp[r_begin:r_end]
+        # x_forecast = self.data_forecast[r_begin:r_end, :self.forecast_dim]
+        x_forecast = self.data_forecast[r_begin:r_end, :self.forecast_dim]
+        return seq_x, seq_y, seq_x_mark, seq_y_mark, x_forecast
 
     def __len__(self):
         return len(self.data_x) - self.seq_len - self.pred_len + 1
@@ -160,17 +148,6 @@ class Dataset_cumstom(Dataset):
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
-        if self.task_name == 'imputation':
-            data_ori = data
-            data_withmask, mask, data = mask_custom(torch.Tensor(data), mask_rate=self.configs.mask_rate, method=self.configs.mask_method, f_dim=self.c_out, seed=self.configs.fix_seed,targets_only=self.configs.mask_target_only)
-            data_withmask, mask, data = data_withmask.squeeze(dim=0).numpy(), mask.squeeze(dim=0).numpy(), data.squeeze(dim=0).numpy()
-            data_inter = interpolate_nan_matrix(data_withmask, method='polynomial', axis=0, order=2)
-
-            self.data_ori = data_ori[border1:border2, :len(self.feature_cols)]
-            self.data = data[border1:border2, :]
-            self.data_withmask = data_withmask[border1:border2, :]
-            self.mask = mask[border1:border2, :]
-            self.data_inter = data_inter[border1:border2, :]
 
         if self.features == 'S':
             self.data_x = data[border1:border2, -1:]
