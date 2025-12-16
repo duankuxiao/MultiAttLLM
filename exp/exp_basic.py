@@ -1,6 +1,6 @@
 import os
 import torch
-from models import TimeLLM, TimesNet, DLinear, Informer, Transformer, iTransformer, RNN, PatchTST, LLMformer, MultiAttLLM, ImputeLLM
+from models import TimeLLM, TimesNet, DLinear, Informer, Transformer, iTransformer, RNN, PatchTST, ImputeLLM
 
 
 class Exp_Basic(object):
@@ -15,8 +15,6 @@ class Exp_Basic(object):
             'iTransformer': iTransformer,
             'RNN': RNN,
             'PatchTST':PatchTST,
-            'LLMformer':LLMformer,
-            'MultiAttLLM':MultiAttLLM,
             'ImputeLLM':ImputeLLM,
         }
         if args.model == 'Mamba':
