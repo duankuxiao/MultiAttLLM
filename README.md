@@ -21,7 +21,7 @@ LLMformer is a hybrid architecture that combines pre-trained Large Language Mode
 Input → Normalization → LLM Encoder → Data Embedding
       → Transformer Encoder → Likelihood Layer → (mu, sigma) → Probabilistic Output
 ```
-![Framework of MultiAttLLM](figures/LLMformer/LLMformer.png)
+![Framework of LLMformer](figures/LLMformer/LLMformer.png)
 
 ## Requirements
 
