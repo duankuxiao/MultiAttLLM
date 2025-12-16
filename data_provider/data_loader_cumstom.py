@@ -1,12 +1,8 @@
-import datetime
 import os
-import numpy as np
 import pandas as pd
 import torch
-from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
-
 from utils.masking import mask_custom
 from utils.metrics_imputation import interpolate_nan_matrix
 from utils.timefeatures import time_features
@@ -126,12 +122,6 @@ class Dataset_cumstom(Dataset):
             border1s = [0, self.num_train, len(df_raw) - self.num_test]
             border2s = [self.num_train, self.num_train + num_vali, len(df_raw)]
 
-        if self.data_path == 'tokyo_2016_.csv':
-            self.num_train = 8760*4 - 8760 - 8760  # 67944
-            num_vali = 8760
-            border1s = [0, - num_vali - self.num_test - self.seq_len, - self.num_test - self.seq_len]
-            border2s = [self.num_train, - self.num_test - self.seq_len, len(df_raw)]
-
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
@@ -147,13 +137,6 @@ class Dataset_cumstom(Dataset):
         df_target_source_domain = df_source_domain[self.target]
 
         if self.scale:
-            '''
-            train_data = df_data[border1s[0]:border2s[0]]
-            self.scaler.fit(train_data.values)
-            data = self.scaler.transform(df_data.values)
-            self.target_scaler.fit(df_target.values)
-            '''
-
             train_data = df_data_source_domain[border1s[0]:border2s[0]]
             self.scaler.fit(train_data.values)
             data = self.scaler.transform(df_data.values)
@@ -198,55 +181,6 @@ class Dataset_cumstom(Dataset):
 
         self.data_forecast = data[border1:border2, :self.forecast_dim]
         self.data_stamp = data_stamp
-
-
-class Dataset_classification(Dataset):
-    def __init__(self,configs, root_path, flag='train', size=None,
-                 features='S', data_path='PV_power.csv',
-                 target=['PV'], scale=True, timeenc=0, freq='h', percent=100,seasonal_patterns=None):
-
-        self.num_train = configs.num_train
-        self.data_path = data_path
-        self.num_test = configs.num_test
-        self.task_name = configs.task_name
-        self.source_data_path = configs.source_data_path
-        self.forecast_dim = configs.forecast_dim
-        self.feature_cols = configs.feature_cols
-        self.c_out = configs.c_out
-        if size == None:
-            self.seq_len = 24 * 3
-            self.label_len = 24
-            self.pred_len = 24
-        else:
-            self.seq_len = size[0]
-            self.label_len = size[1]
-            self.pred_len = size[2]
-        # init
-        assert flag in ['train', 'test', 'val']
-        type_map = {'train': 0, 'val': 1, 'test': 2}
-        self.set_type = type_map[flag]
-        self.percent = percent
-        self.__read_data__()
-        self.seq_len = self.data.shape[1]
-        self.feature_dim = self.data.shape[2]
-        self.class_names = np.unique(self.labels)
-
-    def __getitem__(self, index):
-        mark = np.zeros_like(self.data)
-        return self.data[index,:,:],self.labels[index], mark[index,:,:]
-
-    def __len__(self):
-        return len(self.data)
-
-    def __read_data__(self):
-        npz = np.load(r"D:\Time-LLM-main\dataset\classification\{}".format(self.data_path))
-        if self.set_type == 'train':
-            self.data = npz["train_data"]
-            self.labels = npz["train_labels"]
-        else:
-            self.data = npz["test_data"]
-            self.labels = npz["test_labels"]
-
 
 if __name__ == '__main__':
     pass
