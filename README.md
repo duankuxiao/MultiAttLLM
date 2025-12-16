@@ -24,7 +24,7 @@ Input → Normalization → Multi-head Attention Layer
 ![Framework of MultiAttLLM](figures/ImputeLLM/ImputeLLM.png)
 
 ## Proposed adaptive hybrid loss function
-![Framework of MultiAttLLM](figures/ImputeLLM/loss.png)
+![Framework of Hybrid Loss Function](figures/ImputeLLM/loss.png)
 
 ## Requirements
 
