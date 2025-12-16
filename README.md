@@ -19,7 +19,7 @@ MultiAttLLM is a novel architecture that combines Large Language Models (LLMs) w
 Input → Normalization → Cross Attention → [LLM Encoder (target) + Transformer Encoder (covariates)]
       → self-Attention Fusion → Output Projection → Predictions
 ```
-![Framework of MultiAttLLM](figures/MultiAttLLM/MultiAttLLM.png)
+![Framework of MultiAttLLM](figures/MultiAttLLM/MultiAttLLM.PNG)
 
 ## Requirements
 
