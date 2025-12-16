@@ -14,13 +14,17 @@ ImputeLLM is a novel architecture that leverages pre-trained Large Language Mode
 - **Dynamic Prompts**: Generates statistical prompts (min, max, median, trend, lags) for context
 - **Multiple Missing Patterns**: Supports MCAR, MAR, and RDO masking methods
 
-## Architecture
+## Proposed ImputeLLM Architecture
 
 ```
-Input → Normalization → Patch Embedding → Reprogramming Layer
-      → [Optional Prompt Embeddings] → LLM Forward Pass
+Input → Normalization → Multi-head Attention Layer
+      → Fronzen LLM Layer → Data Embeddings → Transformer Decoder
       → Output Projection → Denormalization → Imputed Output
 ```
+![Framework of MultiAttLLM](figures/ImputeLLM/ImputeLLM.png)
+
+## Proposed adaptive hybrid loss function
+![Framework of MultiAttLLM](figures/ImputeLLM/loss.png)
 
 ## Requirements
 
@@ -66,7 +70,7 @@ The model is evaluated on the HVAC dataset:
 - 4 target variables: Total_Power, Total_Chiller_Power, System_Energy_Efficiency, Total_Cooling_Capacity
 - 15-minute intervals (2023-2024)
 
-Data should be placed in `dataset/HVAC/` directory.
+![Framework of MultiAttLLM](figures/ImputeLLM/data_description.png)
 
 ## Missing Data Patterns
 
@@ -74,7 +78,6 @@ The model supports three types of missing data patterns:
 
 1. **MCAR (Missing Completely At Random)**: Each value has equal probability of being missing
 2. **MAR (Missing At Random)**: Missingness depends on observed values
-3. **RDO (Random Drop Out)**: Contiguous blocks of missing values
 
 ## Evaluation Metrics
 
@@ -94,10 +97,6 @@ If you find this work useful, please cite our paper:
   year={2024}
 }
 ```
-
-## License
-
-This project is licensed under the MIT License.
 
 ## Related Papers
 
