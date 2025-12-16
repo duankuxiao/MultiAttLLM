@@ -13,7 +13,7 @@ LLMformer is a hybrid architecture that combines pre-trained Large Language Mode
 - **Multiple LLM Backends**: GPT-2, BERT, LLAMA (1b/3b/8b), Qwen
 - **Likelihood Functions**: Gaussian and Negative Binomial distributions
 - **Imputation Support**: Handles missing values in time series data
-![Framework of MultiAttLLM](figures/LLMformer/workflow.png)
+![Background](figures/LLMformer/workflow.png)
 - 
 ## Architecture
 
