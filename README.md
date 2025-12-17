@@ -33,13 +33,13 @@ git clone -b paper/ImputeLLM https://github.com/YOUR_USERNAME/MultiAttLLM.git
 - **Key Feature**: Multi-head cross-attention reprogramming between time series and LLM embeddings
 
 ### LLMformer (Probabilistic Forecasting)
-- **Task**: Probabilistic time series forecasting and imputation
+- **Task**: Probabilistic time series forecasting
 - **Output**: Distribution parameters (mean, standard deviation) for uncertainty quantification
 - **Key Feature**: Hybrid dual-encoder architecture with likelihood-based output
 
 ### ImputeLLM (Imputation)
 - **Task**: Missing value imputation in time series data
-- **Patterns**: MCAR, MAR, RDO missing data patterns
+- **Patterns**: MCAR, MAR missing data patterns
 - **Key Feature**: Dynamic prompts with statistical context for LLM guidance
 
 ## Supported LLM Backends
