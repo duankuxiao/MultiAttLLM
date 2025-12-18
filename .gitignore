@@ -34,8 +34,6 @@ results/
 checkpoints/
 exp/
 
-# Figures (optional, can be regenerated)
-figures/
 
 # Temporary files
 *.tmp
