@@ -1,6 +1,9 @@
-# MultiAttLLM: Multi-Attention LLM for Energy Demand Forecasting
+<p align="center">
+<h1 align="center">MultiAttLLM: Multi-Attention LLM for Energy Demand Forecasting</h1>
 
-This repository contains the official implementation of the paper **"MultiAttLLM: Multi-Attention Large Language Model for Energy Demand and Generation Forecasting"**.
+<p align="center">
+  This repository contains the official implementation of the paper "MultiAttLLM: Multi-Attention Large Language Model for Energy Demand and Generation Forecasting".
+</p>
 
 ## Overview
 
