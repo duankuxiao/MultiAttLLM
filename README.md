@@ -27,7 +27,7 @@ git clone -b paper/ImputeLLM https://github.com/YOUR_USERNAME/MultiAttLLM.git
 
 ## Overview
 
-### MultiAttLLM (Forecasting)
+### MultiAttLLM (Long Term Forecasting)
 - **Task**: Long-term electricity demand and renewable energy forecasting
 - **Horizon**: 7-day (168-hour) predictions
 - **Key Feature**: Multi-head cross-attention reprogramming between time series and LLM embeddings
