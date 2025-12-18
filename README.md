@@ -39,7 +39,7 @@ pip install torch transformers numpy pandas scikit-learn matplotlib
 ### Training
 
 ```bash
-python run_main.py
+python run_long_term_forecast.py
 ```
 
 ### Configuration
@@ -52,7 +52,7 @@ Key parameters in `configs/electricity_configs.py`:
 
 ### Hyperparameters
 
-Model-specific hyperparameters are in `hyparam_setup_forele.py`.
+Model-specific hyperparameters are in `setup_MultiAttLLM.py`.
 
 ## Dataset
 
@@ -77,9 +77,6 @@ If you find this work useful, please cite our paper:
 }
 ```
 
-## License
-
-This project is licensed under the MIT License.
 
 ## Related Papers
 
