@@ -87,9 +87,6 @@ If you find this work useful, please cite our paper:
 }
 ```
 
-## License
-
-This project is licensed under the MIT License.
 
 ## Related Papers
 
