@@ -1,6 +1,9 @@
-# LLMformer: Probabilistic Forecasting with Large Language Models
+<p align="center">
+<h1 align="center">LLMformer: Probabilistic Forecasting with Large Language Models</h1>
 
-This repository contains the official implementation of the paper **"LLMformer: Hybrid LLM-Transformer Model for Probabilistic Time Series Forecasting"**.
+<p align="center">
+  This repository contains the official implementation of the paper "LLMformer: Hybrid LLM-Transformer Model for Probabilistic Time Series Forecasting".
+</p>
 
 ## Overview
 
