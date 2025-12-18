@@ -1,6 +1,20 @@
-# LLM-Enhanced Time Series Models
+<p align="center">
+  <img src="figures/logo.png" alt="Logo" width="200"/>
+</p>
 
-This repository contains implementations for three research papers on Large Language Model (LLM) enhanced time series analysis.
+<h1 align="center">LLM-Enhanced Time Series Models</h1>
+
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python Version"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-2.0+-red.svg" alt="PyTorch"></a>
+  <a href="https://github.com/duankuxiao/TimeLLM/stargazers"><img src="https://img.shields.io/github/stars/duankuxiao/TimeLLM?style=social" alt="GitHub Stars"></a>
+  <a href="https://github.com/duankuxiao/TimeLLM/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  This repository contains implementations for three research papers on Large Language Model (LLM) enhanced time series analysis.
+</p>
+
 
 ## Papers and Branches
 
