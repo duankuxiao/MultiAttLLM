@@ -6,32 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a PyTorch-based research framework for time series **forecasting** and **imputation** using Large Language Models (LLMs) combined with Transformer architectures. The project implements methods from three academic papers, each on a separate branch.
 
-### Branch Structure
-| Branch | Model | Task |
-|--------|-------|------|
-| `paper/MultiAttLLM` | MultiAttLLM | Long-term energy forecasting (168-hour horizon) |
-| `paper/LLMformer` | LLMformer | Probabilistic forecasting with uncertainty |
-| `paper/ImputeLLM` | ImputeLLM | Missing value imputation |
-
-### Key Models
-- **MultiAttLLM** (`models/MultiAttLLM.py`): Multi-head cross-attention reprogramming between time series and LLM embeddings
-- **LLMformer** (`models/LLMformer.py`): Hybrid dual-encoder architecture with probabilistic (mean, std) outputs
-- **ImputeLLM** (`models/ImputeLLM.py`): Dynamic prompts with statistical context for LLM-guided imputation
-
 ## Common Commands
 
 ```bash
-# Run long term forecasting experiments
-python run_long_term_forecast.py
-
-# Run imputation experiments
-python run_imputation.py
-
 # Run probabilistic forecasting experiments
 python run_probabilistic_forecast.py
 
-# Zero-shot testing
-python zero-shot_test.py
 ```
 
 ## Architecture
@@ -69,7 +49,7 @@ Models expect pre-trained LLMs at `D:\LLM\`:
 
 ### Model Registry
 Models are registered in `exp/exp_basic.py:model_dict`. Available models include:
-- LLM-enhanced: LLMformer, MultiAttLLM, ImputeLLM, TimeLLM
+- LLM-enhanced: LLMformer
 - Baselines: TimesNet, DLinear, Informer, Transformer, iTransformer, PatchTST, RNN
 
 ## Requirements
