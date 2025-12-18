@@ -1,6 +1,10 @@
-# ImputeLLM: Time Series Imputation with Large Language Models
+<p align="center">
+<h1 align="center">ImputeLLM: Time Series Imputation with Large Language Models</h1>
 
-This repository contains the official implementation of the paper **"ImputeLLM: Large Language Model Enhanced Time Series Imputation"**.
+<p align="center">
+  This repository contains the official implementation of the paper "ImputeLLM: Large Language Model Enhanced Time Series Imputation".
+
+</p>
 
 ## Overview
 
