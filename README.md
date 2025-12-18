@@ -41,7 +41,7 @@ pip install torch transformers numpy pandas scikit-learn matplotlib
 ### Training
 
 ```bash
-python run_imputation.py
+python run_probabilistic_forecast.py
 ```
 
 ### Configuration
@@ -56,7 +56,7 @@ Key parameters in `configs/HVAC_configs.py`:
 
 ### Hyperparameters
 
-Model-specific hyperparameters are in `hyparam_imputation.py`.
+Model-specific hyperparameters are in `setup_LLMformer.py`.
 
 ## Dataset
 
@@ -65,7 +65,7 @@ The model is evaluated on the HVAC dataset:
 - 4 target variables: Total_Power, Total_Chiller_Power, System_Energy_Efficiency, Total_Cooling_Capacity
 - 15-minute intervals (2023-2024)
 
-Data should be placed in `dataset/HVAC/` directory.
+The HVAC dataset is a trade secret, and the author has no right to open-source it.
 
 ## Probabilistic Forecasting
 
