@@ -16,18 +16,18 @@ Clone a specific branch for the paper you're interested in:
 
 ```bash
 # For energy demand forecasting
-git clone -b paper/MultiAttLLM https://github.com/YOUR_USERNAME/MultiAttLLM.git
+git clone -b paper/MultiAttLLM https://github.com/duankuxiao/LLM-Enhanced-Time-Series-Library.git
 
 # For probabilistic forecasting
-git clone -b paper/LLMformer https://github.com/YOUR_USERNAME/MultiAttLLM.git
+git clone -b paper/LLMformer https://github.com/duankuxiao/LLM-Enhanced-Time-Series-Library.git
 
 # For time series imputation
-git clone -b paper/ImputeLLM https://github.com/YOUR_USERNAME/MultiAttLLM.git
+git clone -b paper/ImputeLLM https://github.com/duankuxiao/LLM-Enhanced-Time-Series-Library.git
 ```
 
 ## Overview
 
-### MultiAttLLM (Long Term Forecasting)
+### MultiAttLLM (Long-Term Forecasting)
 - **Task**: Long-term electricity demand and renewable energy forecasting
 - **Horizon**: 7-day (168-hour) predictions
 - **Key Feature**: Multi-head cross-attention reprogramming between time series and LLM embeddings
