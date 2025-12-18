@@ -80,6 +80,6 @@ If you find this work useful, please cite our paper:
 
 ## Related Papers
 
-- [MultiAttLLM (Long-Term Forecasting)](../papers/MultiAttLLM.pdf)
-- [LLMformer (Probabilistic Forecasting)](../papers/LLMformer)
-- [ImputeLLM (Time Series Imputation)](../papers/ImputeLLM)
+- [MultiAttLLM (Long-Term Forecasting)](papers/MultiAttLLM.pdf)
+- [LLMformer (Probabilistic Forecasting)](papers/LLMformer)
+- [ImputeLLM (Time Series Imputation)](papers/ImputeLLM)
