@@ -61,7 +61,7 @@ Key parameters in `configs/HVAC_configs.py`:
 
 ### Hyperparameters
 
-Model-specific hyperparameters are in `hyparam_imputation.py`.
+Model-specific hyperparameters are in `setup_ImputeLLM.py`.
 
 ## Dataset
 
