@@ -25,9 +25,9 @@ class Model(nn.Module):
         if self.use_forecast:
             self.forecast_projection = nn.Linear(configs.forecast_dim, configs.enc_in)
         if configs.rnn_model == 'GRU':
-            self.rnn_layer = nn.GRU(configs.enc_in, configs.rnn_dim, configs.rnn_layers, batch_first=True)
+            self.rnn_layer = nn.GRU(configs.enc_in, configs.d_model, configs.e_layers, batch_first=True)
         elif configs.rnn_model == 'LSTM':
-            self.rnn_layer = nn.LSTM(configs.enc_in, configs.rnn_dim, configs.rnn_layers, batch_first=True)
+            self.rnn_layer = nn.LSTM(configs.enc_in, configs.d_model, configs.e_layers, batch_first=True)
 
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast' or self.task_name == 'interval_forecast':
             self.linear_predict = nn.Linear(configs.seq_len, configs.pred_len)
@@ -38,13 +38,13 @@ class Model(nn.Module):
 
         if self.task_name == 'interval_forecast':
             if configs.likelihood == "g":
-                self.likelihood_layer = Gaussian(configs.rnn_dim, configs.c_out)
+                self.likelihood_layer = Gaussian(configs.d_model, configs.c_out)
             elif configs.likelihood == "nb":
-                self.likelihood_layer = NegativeBinomial(configs.rnn_dim, configs.c_out)
+                self.likelihood_layer = NegativeBinomial(configs.d_model, configs.c_out)
             else:
-                self.likelihood_layer = Gaussian(configs.rnn_dim, configs.c_out)
+                self.likelihood_layer = Gaussian(configs.d_model, configs.c_out)
 
-        self.output_projection = nn.Linear(configs.rnn_dim, configs.c_out)
+        self.output_projection = nn.Linear(configs.d_model, configs.c_out)
         if self.task_name == 'classification' or self.task_name == 'anomaly_detection' or self.task_name == 'imputation':
             self.pred_len = configs.seq_len
         else:
@@ -53,7 +53,7 @@ class Model(nn.Module):
         if self.task_name == 'classification':
             self.act = F.gelu
             self.dropout = nn.Dropout(configs.dropout)
-            self.output_projection = nn.Linear(configs.rnn_dim * configs.seq_len, configs.num_class)
+            self.output_projection = nn.Linear(configs.d_model * configs.seq_len, configs.num_class)
 
     def encoder(self, x_enc,x_forecast=None):
         if self.use_norm:

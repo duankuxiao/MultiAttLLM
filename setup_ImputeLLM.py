@@ -31,8 +31,8 @@ def model_hyperparameter_setup(args):
 
     if 'RNN' in args.model:
         args.use_norm = False
-        args.rnn_dim = 256
-        args.rnn_layers = 2
+        args.d_model = 256
+        args.e_layers = 2
 
     if args.model == 'Transformer':
         args.use_norm = False
