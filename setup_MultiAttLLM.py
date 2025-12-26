@@ -22,8 +22,8 @@ def model_hyperparameter_setup(args):
 
     if 'RNN' in args.model:
         args.learning_rate = 0.001  # 0.0001 for forecast   0.001 for imputation
-        args.rnn_dim = 256  # default
-        args.rnn_layers = 2  # default
+        args.d_model = 256  # default
+        args.e_layers = 2  # default
 
     if args.model == 'Transformer':
         args.d_model = 64
