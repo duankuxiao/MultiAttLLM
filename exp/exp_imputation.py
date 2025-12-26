@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
-from utils.tools import EarlyStopping, adjust_learning_rate
+from utils.tools import EarlyStopping, adjust_learning_rate, save_config
 import torch
 import torch.nn as nn
 from torch import optim
@@ -11,9 +11,8 @@ import os
 import time
 import warnings
 import numpy as np
-from utils.dtw_metric import accelerated_dtw
-from utils.tools import results_evaluation, save_config
-from utils.metrics_imputation import calc_mae, calc_mse, results_evaluation_imputation, interpolate_nan_matrix, interpolate_time_series
+from utils.metrics_imputation import calc_mae, calc_mse, results_evaluation_imputation, interpolate_nan_matrix
+from utils.metrics import results_evaluation
 
 from torch.optim import lr_scheduler
 
