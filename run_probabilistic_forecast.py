@@ -37,7 +37,7 @@ def get_setting(args,ii):
         if args.use_prompt:
             setting += '_prompt'
     if 'RNN' in args.model:
-        setting += '_{}_rnnd{}_rnnf{}'.format(args.rnn_model, args.rnn_dim, args.rnn_layers, )
+        setting += '_{}'.format(args.rnn_model)
     if args.use_norm:
         setting += '_norm'
 
