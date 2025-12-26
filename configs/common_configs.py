@@ -105,8 +105,6 @@ parser.add_argument('--scale', action='store_true', help='scale', default=True)
 
 # RNN
 parser.add_argument('--rnn_model', type=str, default='LSTM', help='RNN model')  # GRU, LSTM, seq2seq
-parser.add_argument('--rnn_dim', type=int, default=256, help='LLM model dimension')  # LLama7b:4096; GPT2-small:768; BERT-base:768
-parser.add_argument('--rnn_layers', type=int, default=2, help='bert_layers=6 llama_layers=32')
 
 # optimization
 parser.add_argument('--num_workers', type=int, default=1, help='data loader num workers')
