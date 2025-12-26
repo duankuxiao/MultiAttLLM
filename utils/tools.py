@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import shutil
-from utils.metrics import results_evaluation
-from tqdm import tqdm
 import os
 import pickle
 import seaborn as sns

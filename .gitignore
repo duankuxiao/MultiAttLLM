@@ -32,7 +32,6 @@ wheels/
 # Results and checkpoints (too large for git)
 results/
 checkpoints/
-exp/
 
 # Figures (optional, can be regenerated)
 figures/

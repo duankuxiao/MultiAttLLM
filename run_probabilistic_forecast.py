@@ -51,11 +51,7 @@ def get_setting(args,ii):
 
 
 def main(args):
-    if args.task_name == 'interval_forecast':
-        from exp.exp_interval_forecasting import Exp_Forecast
-    else:
-        from exp.exp_forecasting import Exp_Forecast
-
+    from exp.exp_probabilistic_forecasting import Exp_Forecast
     Exp = Exp_Forecast
 
     if args.is_training:
